@@ -19,32 +19,41 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
     $scope.messageLimit = 10;
 
     $scope.parseMmsetting = function (mmsettingPath) {
-        var fs = require('fs');
-        var plist = require('plist');
-        var command = "plutil -convert xml1 "+mmsettingPath;
-        //console.log("command:",command);
-        var stdOut = require('child_process').execSync( command,{// child_process会调用sh命令，pc会调用cmd.exe命令
-            encoding: "utf8"
-        } );
+        try {
+            var fs = require('fs');
+            var plist = require('plist');
+            var command = "plutil -convert xml1 "+mmsettingPath;
+            //console.log("command:",command);
+            var stdOut = require('child_process').execSync( command,{// child_process会调用sh命令，pc会调用cmd.exe命令
+                encoding: "utf8"
+            } );
 
-        var content = fs.readFileSync(mmsettingPath, 'utf8');
-        var obj = plist.parse(content).$objects;
-        var headUrl = "";
-        // find headURL
-        for (var i=0;i<obj.length;i++){
-            if (typeof obj[i] == "string"){
-                var pos1 = obj[i].indexOf('http://wx.qlogo.cn/');
-                if (pos1==0 & obj[i].slice(-3)=='132'){
-                    // console.log(obj[i])
-                    headUrl = obj[i]
+            var content = fs.readFileSync(mmsettingPath, 'utf8');
+            var obj = plist.parse(content).$objects;
+            var headUrl = "";
+            // find headURL
+            for (var i=0;i<obj.length;i++){
+                if (typeof obj[i] == "string"){
+                    var pos1 = obj[i].indexOf('http://wx.qlogo.cn/');
+                    if (pos1==0 & obj[i].slice(-3)=='132'){
+                        // console.log(obj[i])
+                        headUrl = obj[i]
+                    }
                 }
             }
+            return {
+                nickname:   obj[3] || "微信用户", //昵称
+                wechatID:   obj[19] || "", //微信号
+                headUrl:    headUrl, //头像1
+            };
+        } catch (error) {
+            console.error("parseMmsetting 错误:", error);
+            return {
+                nickname: "微信用户",
+                wechatID: "",
+                headUrl: ""
+            };
         }
-        return {
-            nickname:   obj[3], //昵称
-            wechatID:   obj[19], //微信号
-            headUrl:    headUrl, //头像1
-        };
     };
 
     // "构造函数"，页面载入的时候执行
@@ -62,9 +71,41 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
             if(documentsFileList[i].length == 32 && documentsFileList[i]!="00000000000000000000000000000000"){
                 console.log(documentsFileList[i]);
                 $scope.wechatUserList.push(documentsFileList[i]);
-                var mmsettingPath = path.join($scope.documentsPath,documentsFileList[i],'mmsetting.archive')
-                let myInfo = $scope.parseMmsetting(mmsettingPath)
-                $scope.everLoggedThisPhoneWchatUsersInfo[documentsFileList[i]] = myInfo
+                
+                // 尝试查找 mmsetting 文件（支持新旧文件名）
+                var mmsettingPath = path.join($scope.documentsPath, documentsFileList[i], 'mmsetting.archive');
+                var mmsettingextPath = path.join($scope.documentsPath, documentsFileList[i], 'mmsettingext.archive');
+                var lastHeadImagePath = path.join($scope.documentsPath, documentsFileList[i], 'lastHeadImage');
+                
+                var myInfo = null;
+                
+                // 尝试解析 mmsetting.archive
+                if (fs.existsSync(mmsettingPath)) {
+                    console.log("找到 mmsetting.archive:", mmsettingPath);
+                    myInfo = $scope.parseMmsetting(mmsettingPath);
+                } 
+                // 尝试解析 mmsettingext.archive（虽然通常不包含用户信息，但尝试一下）
+                else if (fs.existsSync(mmsettingextPath)) {
+                    console.log("找到 mmsettingext.archive，使用默认值:", mmsettingextPath);
+                    myInfo = $scope.parseMmsetting(mmsettingextPath);
+                } 
+                // 如果都不存在，使用默认值
+                else {
+                    console.log("未找到 mmsetting 文件，使用默认值");
+                    myInfo = {
+                        nickname: "微信用户",
+                        wechatID: "",
+                        headUrl: ""
+                    };
+                }
+                
+                // 如果没有头像 URL，尝试使用 lastHeadImage
+                if (!myInfo.headUrl && fs.existsSync(lastHeadImagePath)) {
+                    console.log("使用 lastHeadImage 作为头像:", lastHeadImagePath);
+                    myInfo.headUrl = 'file://' + lastHeadImagePath;
+                }
+                
+                $scope.everLoggedThisPhoneWchatUsersInfo[documentsFileList[i]] = myInfo;
             }
         }
         console.log($scope.everLoggedThisPhoneWchatUsersInfo)
@@ -74,6 +115,8 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
 
     $scope.onWechatUserMD5Selected = function(wechatUserMD5){
         var sqlite3 = require('sqlite3');
+        var fs = require('fs');
+        var path = require('path');
 
         console.log(wechatUserMD5);
         $scope.meInfo = $scope.everLoggedThisPhoneWchatUsersInfo[wechatUserMD5]
@@ -108,16 +151,39 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
         $scope.filePath = sqlitefilePath;
         // sqlite3相关文档：https://github.com/mapbox/node-sqlite3/wiki/API
 
-        //var sqlite3 = require('sqlite3');
-        // 打开一个sqlite数据库
-        var db = new sqlite3.Database(sqlitefilePath,sqlite3.OPEN_READONLY,function (error) {
-            if (error){
-                console.log("Database error:",error);
+        // 新版微信将聊天记录分散在多个数据库中
+        var dbPath = path.join($scope.documentsPath, wechatUserMD5, "DB");
+        var dbFiles = ['MM.sqlite', 'message_1.sqlite', 'message_2.sqlite', 'message_3.sqlite', 'message_4.sqlite'];
+        var existingDbFiles = [];
+        
+        // 检查哪些数据库文件存在
+        dbFiles.forEach(function(dbFile) {
+            var fullPath = path.join(dbPath, dbFile);
+            if (fs.existsSync(fullPath)) {
+                existingDbFiles.push(fullPath);
+                console.log("找到数据库:", dbFile);
             }
         });
-        console.log("myFriends Size:",$scope.myFriends.length);
-        // 查找数据库内的所有table，并逐个遍历
-        db.each("select * from SQLITE_MASTER where type = 'table' and name like 'Chat/_%' ESCAPE '/' ;",function (error,row) {
+        
+        console.log("将查询 " + existingDbFiles.length + " 个数据库文件");
+        
+        var processedDbs = 0;
+        var totalTablesFound = 0;
+        
+        // 遍历每个数据库文件，查找聊天表
+        existingDbFiles.forEach(function(dbFilePath) {
+            var db = new sqlite3.Database(dbFilePath, sqlite3.OPEN_READONLY, function (error) {
+                if (error){
+                    console.log("Database error for", dbFilePath, ":", error);
+                    processedDbs++;
+                    return;
+                }
+            });
+            
+            console.log("正在查询数据库:", dbFilePath);
+            
+            // 查找数据库内的所有table，并逐个遍历
+            db.each("select * from SQLITE_MASTER where type = 'table' and name like 'Chat/_%' ESCAPE '/' ;",function (error,row) {
             // 回调函数，每获取一个条目，执行一次，第二个参数为当前条目
             // 声明一个promise，将条目的name传入resolve
             var getRowName = new Promise(function (resolve,reject) {
@@ -176,13 +242,25 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
                         $scope.$apply();
                     });
                 });
-        },function (error,result) {
-            if(!error){
-                $scope.totalTablesCount = result;
-                console.log("completed total tables Count:",result);
-            }else{
-                console.log("complete error:",error);
-            }
+            },function (error,result) {
+                if(!error){
+                    totalTablesFound += result;
+                    console.log(dbFilePath, "- 完成，找到", result, "个聊天表");
+                }else{
+                    console.log(dbFilePath, "- 查询错误:", error);
+                }
+                
+                processedDbs++;
+                
+                // 所有数据库都处理完毕
+                if (processedDbs === existingDbFiles.length) {
+                    $scope.totalTablesCount = totalTablesFound;
+                    console.log("所有数据库查询完成，总计找到", totalTablesFound, "个聊天表");
+                    console.log("可显示聊天列表数:", $scope.dbTables.length);
+                }
+                
+                db.close();
+            });
         });
     };
     // 用户在左侧选择了具体table
