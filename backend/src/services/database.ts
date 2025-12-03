@@ -131,6 +131,14 @@ export class WeChatDatabase {
               continue;
             }
 
+            // 从表名提取聊天对象的 MD5
+            const chatterMd5 = this.extractChatterMd5(tableName);
+            const contact = contactsMap.get(chatterMd5);
+            
+            // 获取基本信息
+            const wechatId = contact?.userName || '未知';
+            const isGroup = wechatId.includes('@chatroom');
+
             // 获取最后一条消息（用于排序和预览）
             let lastMessageTime = 0;
             let lastMessagePreview = '';
@@ -148,13 +156,42 @@ export class WeChatDatabase {
                 const msgContent = lastMsg[1] as string || '';
                 const msgType = lastMsg[2] as number || 0;
                 
-                // 生成消息预览（前30个字符）
+                // 生成消息预览
                 if (msgType === 1) {
                   // 文本消息
-                  lastMessagePreview = msgContent.substring(0, 30);
-                  if (msgContent.length > 30) {
-                    lastMessagePreview += '...';
+                  let preview = msgContent;
+                  
+                  // 如果是群聊，解析发送者昵称
+                  if (isGroup && msgContent.includes(':\n')) {
+                    const parts = msgContent.split(':\n');
+                    if (parts.length >= 2) {
+                      const senderId = parts[0].trim();
+                      const content = parts.slice(1).join(':\n');
+                      
+                      // 查找发送者的昵称
+                      const senderMd5 = md5(senderId);
+                      const sender = contactsMap.get(senderMd5);
+                      let senderName = '';
+                      
+                      if (sender) {
+                        senderName = decode_user_name_info(sender.dbContactRemark);
+                      }
+                      
+                      // 如果没找到昵称，使用友好名称
+                      if (!senderName || senderName === senderId) {
+                        senderName = getFriendlyName(senderId, '', false);
+                      }
+                      
+                      preview = `${senderName}: ${content}`;
+                    }
                   }
+                  
+                  // 限制长度
+                  if (preview.length > 40) {
+                    preview = preview.substring(0, 40) + '...';
+                  }
+                  
+                  lastMessagePreview = preview;
                 } else if (msgType === 3) {
                   lastMessagePreview = '[图片]';
                 } else if (msgType === 34) {
@@ -172,14 +209,6 @@ export class WeChatDatabase {
             } catch (e) {
               // 忽略获取最后消息失败的情况
             }
-
-            // 从表名提取聊天对象的 MD5
-            const chatterMd5 = this.extractChatterMd5(tableName);
-            const contact = contactsMap.get(chatterMd5);
-            
-            // 获取基本信息
-            const wechatId = contact?.userName || '未知';
-            const isGroup = wechatId.includes('@chatroom');
             
             // 尝试解析昵称
             let nickname = '';

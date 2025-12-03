@@ -41,13 +41,13 @@ export class WeChatExporter {
 `;
 
     for (const msg of messages) {
-      const time = new Date(msg.createTime * 1000).toLocaleString('zh-CN');
-      const className = msg.des === 0 ? 'sent' : 'received';
+      const time = new Date(msg.CreateTime * 1000).toLocaleString('zh-CN');
+      const className = msg.Des === 0 ? 'sent' : 'received';
       
       html += `
   <div class="message ${className}">
     <div class="time">${time}</div>
-    <div class="content">${this.escapeHtml(msg.message || '')}</div>
+    <div class="content">${this.escapeHtml(msg.Message || '')}</div>
   </div>
 `;
     }
@@ -79,12 +79,12 @@ export class WeChatExporter {
         messageCount: chatInfo.messageCount,
       },
       messages: messages.map(msg => ({
-        id: msg.mesLocalID,
-        serverId: msg.mesSvrID,
-        time: new Date(msg.createTime * 1000).toISOString(),
-        content: msg.message,
-        type: msg.messageType,
-        direction: msg.des === 0 ? 'sent' : 'received',
+        id: msg.MesLocalID,
+        serverId: msg.MesSvrID,
+        time: new Date(msg.CreateTime * 1000).toISOString(),
+        content: msg.Message,
+        type: msg.Type,
+        direction: msg.Des === 0 ? 'sent' : 'received',
       })),
     };
   }
