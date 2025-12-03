@@ -153,7 +153,17 @@ export class WeChatDatabase {
               if (lastMsgResults.length > 0 && lastMsgResults[0].values.length > 0) {
                 const lastMsg = lastMsgResults[0].values[0];
                 lastMessageTime = lastMsg[0] as number || 0;
-                const msgContent = lastMsg[1] as string || '';
+                
+                // 处理可能是 Uint8Array 的 Message 字段
+                let msgContent = '';
+                if (typeof lastMsg[1] === 'string') {
+                  msgContent = lastMsg[1];
+                } else if (lastMsg[1] instanceof Uint8Array) {
+                  msgContent = new TextDecoder('utf-8').decode(lastMsg[1]);
+                } else if (lastMsg[1]) {
+                  msgContent = String(lastMsg[1]);
+                }
+                
                 const msgType = lastMsg[2] as number || 0;
                 
                 // 生成消息预览
@@ -291,7 +301,14 @@ export class WeChatDatabase {
             for (const row of results[0].values) {
               const message: any = {};
               columns.forEach((col: string, idx: number) => {
-                message[col] = row[idx];
+                let value = row[idx];
+                
+                // 如果是 Message 字段且是 Uint8Array，转换为字符串
+                if (col === 'Message' && value instanceof Uint8Array) {
+                  value = new TextDecoder('utf-8').decode(value);
+                }
+                
+                message[col] = value;
               });
               messages.push(message as Message);
             }

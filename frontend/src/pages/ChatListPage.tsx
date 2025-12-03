@@ -184,7 +184,9 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                   description={
                     <Space direction="vertical" size={0} style={{ width: '100%' }}>
                       <span style={{ color: '#999', fontSize: '12px' }}>
-                        {chat.lastMessagePreview || '暂无消息'}
+                        {typeof chat.lastMessagePreview === 'string' 
+                          ? (chat.lastMessagePreview || '暂无消息')
+                          : '暂无消息'}
                       </span>
                       <Space style={{ fontSize: '12px', color: '#999' }}>
                         {chat.lastMessageTime && (
