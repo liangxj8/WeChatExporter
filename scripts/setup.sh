@@ -47,21 +47,22 @@ echo -e "${GREEN}✓ 操作系统: macOS ${OS_VERSION}${NC}"
 echo -e "${GREEN}✓ 架构: ${ARCH}${NC}"
 
 # 根据架构选择 NW.js 版本和下载地址
+# 使用 SDK 版本以包含完整的 Node.js 库（包括 libnode.dylib）
 if [ "$ARCH" = "arm64" ]; then
     echo -e "${BLUE}⚡ 检测到 Apple Silicon (arm64)${NC}"
-    echo -e "${BLUE}⚡ 将使用 NW.js v${NWJS_VERSION_NEW} 原生 arm64 版本${NC}"
+    echo -e "${BLUE}⚡ 将使用 NW.js SDK v${NWJS_VERSION_NEW} 原生 arm64 版本${NC}"
     NWJS_VERSION="${NWJS_VERSION_NEW}"
-    NWJS_DOWNLOAD_URL="https://dl.nwjs.io/v${NWJS_VERSION_NEW}/nwjs-v${NWJS_VERSION_NEW}-osx-arm64.zip"
-    NWJS_ZIP="${PROJECT_ROOT}/nwjs-v${NWJS_VERSION_NEW}-osx-arm64.zip"
-    NWJS_EXTRACTED_DIR="nwjs-v${NWJS_VERSION_NEW}-osx-arm64"
+    NWJS_DOWNLOAD_URL="https://dl.nwjs.io/v${NWJS_VERSION_NEW}/nwjs-sdk-v${NWJS_VERSION_NEW}-osx-arm64.zip"
+    NWJS_ZIP="${PROJECT_ROOT}/nwjs-sdk-v${NWJS_VERSION_NEW}-osx-arm64.zip"
+    NWJS_EXTRACTED_DIR="nwjs-sdk-v${NWJS_VERSION_NEW}-osx-arm64"
     RUNTIME_TARGET="node-webkit"
 else
     echo -e "${BLUE}💻 检测到 Intel Mac (x64)${NC}"
-    echo -e "${BLUE}💻 将使用 NW.js v${NWJS_VERSION_OLD} x64 版本${NC}"
+    echo -e "${BLUE}💻 将使用 NW.js SDK v${NWJS_VERSION_OLD} x64 版本${NC}"
     NWJS_VERSION="${NWJS_VERSION_OLD}"
-    NWJS_DOWNLOAD_URL="https://dl.nwjs.io/v${NWJS_VERSION_OLD}/nwjs-v${NWJS_VERSION_OLD}-osx-x64.zip"
-    NWJS_ZIP="${PROJECT_ROOT}/nwjs-v${NWJS_VERSION_OLD}-osx-x64.zip"
-    NWJS_EXTRACTED_DIR="nwjs-v${NWJS_VERSION_OLD}-osx-x64"
+    NWJS_DOWNLOAD_URL="https://dl.nwjs.io/v${NWJS_VERSION_OLD}/nwjs-sdk-v${NWJS_VERSION_OLD}-osx-x64.zip"
+    NWJS_ZIP="${PROJECT_ROOT}/nwjs-sdk-v${NWJS_VERSION_OLD}-osx-x64.zip"
+    NWJS_EXTRACTED_DIR="nwjs-sdk-v${NWJS_VERSION_OLD}-osx-x64"
     RUNTIME_TARGET="node-webkit"
 fi
 echo ""

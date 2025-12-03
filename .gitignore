@@ -1,6 +1,7 @@
 /nw
 /nwjs
 nwjs-*.zip
+nwjs-sdk-*.zip
 ffmpeg.zip
 ffmpeg_tmp/
 /development/node_modules
