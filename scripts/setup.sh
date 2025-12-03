@@ -67,28 +67,16 @@ fi
 echo ""
 
 ###############################################################################
-# 2. 检测和配置 Python
+# 2. 检测 Python
 ###############################################################################
 echo -e "${YELLOW}[2/7] 检测 Python...${NC}"
 
-if command -v python &> /dev/null; then
-    PYTHON_CMD="python"
-    echo -e "${GREEN}✓ 找到 python 命令${NC}"
-elif command -v python3 &> /dev/null; then
+if command -v python3 &> /dev/null; then
     PYTHON_CMD="python3"
     echo -e "${GREEN}✓ 找到 python3 命令${NC}"
-    
-    # 创建临时的 python 符号链接
-    PYTHON_SYMLINK="${PROJECT_ROOT}/development/.python-link"
-    mkdir -p "$(dirname "$PYTHON_SYMLINK")"
-    
-    if [ ! -L "$PYTHON_SYMLINK" ]; then
-        ln -sf "$(which python3)" "$PYTHON_SYMLINK/python"
-        echo -e "${GREEN}✓ 创建 python -> python3 符号链接${NC}"
-    fi
-    
-    # 将符号链接目录添加到 PATH（用于编译）
-    export PATH="${PYTHON_SYMLINK}:$PATH"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+    echo -e "${GREEN}✓ 找到 python 命令${NC}"
 else
     echo -e "${RED}✗ 未检测到 Python${NC}"
     echo -e "${YELLOW}请安装 Python 3:${NC}"
@@ -223,10 +211,11 @@ if ! xcode-select -p &> /dev/null; then
     exit 1
 fi
 
-# 设置编译环境变量
-export PYTHON="${PYTHON_CMD}"
+# 设置编译环境变量（使用完整路径）
+export PYTHON="$(which ${PYTHON_CMD})"
 
 echo "编译 sqlite3 模块（针对 NW.js v${NWJS_VERSION}）..."
+echo "使用 Python: ${PYTHON}"
 echo "这可能需要几分钟，请耐心等待..."
 echo ""
 

@@ -22,7 +22,6 @@ echo ""
 echo -e "${YELLOW}此脚本将清理以下内容:${NC}"
 echo "  - development/node_modules/"
 echo "  - development/package-lock.json"
-echo "  - development/.python-link/"
 echo "  - nwjs/"
 echo "  - nwjs-*.zip"
 echo ""
@@ -50,13 +49,6 @@ if [ -f "${PROJECT_ROOT}/development/package-lock.json" ]; then
     echo "清理 package-lock.json..."
     rm -f "${PROJECT_ROOT}/development/package-lock.json"
     echo -e "${GREEN}✓ package-lock.json 已删除${NC}"
-fi
-
-# 清理 python 符号链接
-if [ -d "${PROJECT_ROOT}/development/.python-link" ]; then
-    echo "清理 python 符号链接..."
-    rm -rf "${PROJECT_ROOT}/development/.python-link"
-    echo -e "${GREEN}✓ python 符号链接已删除${NC}"
 fi
 
 # 清理 nwjs
