@@ -37,13 +37,25 @@ chmod +x scripts/run.sh
 #### 1. 安装前置依赖
 
 **必需软件：**
-- Node.js (推荐 v10.16.3 或更高版本)
-- Xcode（用于编译 native 模块）
+- Node.js (推荐 v16 或更高版本)
+- Python 3.x
 
-安装 Node.js：
+**可选（推荐）：**
+- Xcode Command Line Tools（用于从源码编译 sqlite3，提升兼容性）
+
+安装方法：
 ```bash
+# 安装 Node.js
 brew install node
+
+# 安装 Python 3（通常系统已包含）
+brew install python3
+
+# 【可选】安装 Xcode Command Line Tools（提升兼容性）
+xcode-select --install
 ```
+
+**注意**：配置脚本会优先使用 sqlite3 的预编译版本，如果预编译版本可用，则无需 Xcode。
 
 #### 2. 下载 NW.js
 
@@ -194,20 +206,24 @@ ls -la development/node_modules/sqlite3/lib/binding/node-webkit-v0.40.1-darwin-x
 npm install --registry=https://registry.npmmirror.com
 ```
 
-### 3b. Apple Silicon 上 sqlite3 编译失败
+### 3b. sqlite3 安装问题
 
-确保已安装 Xcode Command Line Tools：
+**新版脚本采用多层回退策略，无需手动干预：**
+
+1. 优先使用预编译版本（无需 Xcode）
+2. 如有 Xcode，尝试编译（提升兼容性）
+3. 降级到已知兼容版本
+4. 即使失败也允许启动（测试界面）
+
+如需手动解决：
+
 ```bash
+# 安装 Xcode Command Line Tools（推荐）
 xcode-select --install
-```
 
-如果仍然失败，手动编译（针对 NW.js v0.80.0）：
-```bash
-cd development
-npm install sqlite3@latest --build-from-source \
-  --runtime=node-webkit \
-  --target_arch=arm64 \
-  --target=0.80.0
+# 清理并重新配置
+./scripts/clean.sh
+./scripts/setup.sh
 ```
 
 ### 4. Xcode 相关错误

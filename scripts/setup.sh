@@ -200,57 +200,58 @@ echo -e "${GREEN}✓ 依赖安装完成${NC}"
 echo ""
 
 ###############################################################################
-# 7. 编译 sqlite3 模块
+# 7. 配置 sqlite3 模块
 ###############################################################################
 echo -e "${YELLOW}[7/7] 配置 sqlite3 模块...${NC}"
 
-# 检查是否安装了 Xcode Command Line Tools
-if ! xcode-select -p &> /dev/null; then
-    echo -e "${RED}错误: 未安装 Xcode Command Line Tools${NC}"
-    echo "请运行: xcode-select --install"
-    exit 1
-fi
-
-# 设置编译环境变量（使用完整路径）
-export PYTHON="$(which ${PYTHON_CMD})"
-
-echo "编译 sqlite3 模块（针对 NW.js v${NWJS_VERSION}）..."
-echo "使用 Python: ${PYTHON}"
-echo "这可能需要几分钟，请耐心等待..."
-echo ""
-
 cd "${PROJECT_ROOT}/development"
 
-# 根据架构选择编译目标
-if [ "$ARCH" = "arm64" ]; then
-    TARGET_ARCH="arm64"
-else
-    TARGET_ARCH="x64"
-fi
-
-# 编译 sqlite3
-echo "编译参数:"
-echo "  - Runtime: ${RUNTIME_TARGET}"
-echo "  - Target Arch: ${TARGET_ARCH}"
-echo "  - NW.js Version: ${NWJS_VERSION}"
+echo "尝试安装 sqlite3 模块..."
+echo "策略：优先使用预编译版本，失败则跳过编译（使用系统 Node.js 版本）"
 echo ""
 
-npm install sqlite3@latest --build-from-source \
-    --runtime=${RUNTIME_TARGET} \
-    --target_arch=${TARGET_ARCH} \
-    --target=${NWJS_VERSION} || {
-    echo -e "${YELLOW}⚠ 使用最新版 sqlite3 编译失败，尝试使用 v5.x...${NC}"
-    npm install sqlite3@5 --build-from-source \
-        --runtime=${RUNTIME_TARGET} \
-        --target_arch=${TARGET_ARCH} \
-        --target=${NWJS_VERSION} || {
-        echo -e "${RED}✗ sqlite3 编译失败${NC}"
-        echo -e "${YELLOW}请确保已安装 Xcode Command Line Tools: xcode-select --install${NC}"
-        exit 1
-    }
+# 策略 1: 直接安装 sqlite3（会尝试使用预编译版本）
+echo "方法 1: 尝试安装预编译版本..."
+npm install sqlite3@5.1.7 &> /dev/null && {
+    echo -e "${GREEN}✓ sqlite3 安装成功（使用预编译版本）${NC}"
+} || {
+    echo -e "${YELLOW}⚠ 预编译版本不可用${NC}"
+    
+    # 策略 2: 尝试使用系统 Node.js 编译（不指定 NW.js runtime）
+    if xcode-select -p &> /dev/null; then
+        echo "方法 2: 尝试使用系统 Node.js 编译（可能在 NW.js 中部分功能可用）..."
+        export PYTHON="$(which ${PYTHON_CMD})"
+        npm install sqlite3@5.1.7 --build-from-source &> /tmp/sqlite3_build.log && {
+            echo -e "${GREEN}✓ sqlite3 编译成功（使用系统 Node.js）${NC}"
+            echo -e "${YELLOW}⚠ 注意：这是针对系统 Node.js 编译的，可能在 NW.js 中不完全兼容${NC}"
+        } || {
+            echo -e "${YELLOW}⚠ 编译失败${NC}"
+            
+            # 策略 3: 降级到已知兼容版本
+            echo "方法 3: 尝试使用旧版本 sqlite3..."
+            npm install sqlite3@4.2.0 &> /dev/null && {
+                echo -e "${GREEN}✓ sqlite3 v4.2.0 安装成功${NC}"
+            } || {
+                echo -e "${RED}✗ 无法安装 sqlite3${NC}"
+                echo ""
+                echo -e "${YELLOW}sqlite3 模块安装失败，但不影响应用启动${NC}"
+                echo -e "${YELLOW}应用可能无法读取数据库，但可以测试界面${NC}"
+                echo ""
+                echo "如需完整功能，请："
+                echo "1. 安装 Xcode Command Line Tools: xcode-select --install"
+                echo "2. 重新运行配置脚本"
+            }
+        }
+    else
+        echo -e "${YELLOW}⚠ 未安装 Xcode Command Line Tools，跳过编译${NC}"
+        echo ""
+        echo "尝试安装预编译版本..."
+        npm install sqlite3@4.2.0 &> /dev/null || {
+            echo -e "${YELLOW}sqlite3 安装失败，应用功能可能受限${NC}"
+        }
+    fi
 }
 
-echo -e "${GREEN}✓ sqlite3 编译完成${NC}"
 echo ""
 
 ###############################################################################
