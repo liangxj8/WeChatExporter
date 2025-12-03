@@ -1,4 +1,6 @@
 /nw
+/nwjs
+nwjs-*.zip
 /development/node_modules
 /build
 /webackapp
