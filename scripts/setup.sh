@@ -146,6 +146,48 @@ else
     # 清理下载的压缩包
     rm "${NWJS_ZIP}"
     echo -e "${GREEN}✓ 解压完成${NC}"
+    
+    # 检查并下载 libffmpeg.dylib（如果需要）
+    FFMPEG_LIB="${NWJS_DIR}/nwjs.app/Contents/Frameworks/nwjs Framework.framework/Versions/*/libffmpeg.dylib"
+    if ! ls ${FFMPEG_LIB} 1> /dev/null 2>&1; then
+        echo -e "${YELLOW}检测到缺少 libffmpeg.dylib，正在下载...${NC}"
+        
+        # 根据架构选择 ffmpeg 下载地址
+        if [ "$ARCH" = "arm64" ]; then
+            FFMPEG_URL="https://dl.nwjs.io/v${NWJS_VERSION}/nwjs-v${NWJS_VERSION}-osx-arm64-ffmpeg.zip"
+        else
+            FFMPEG_URL="https://dl.nwjs.io/v${NWJS_VERSION}/nwjs-v${NWJS_VERSION}-osx-x64-ffmpeg.zip"
+        fi
+        
+        FFMPEG_ZIP="${PROJECT_ROOT}/ffmpeg.zip"
+        
+        if command -v curl &> /dev/null; then
+            curl -L "${FFMPEG_URL}" -o "${FFMPEG_ZIP}" --progress-bar
+        elif command -v wget &> /dev/null; then
+            wget "${FFMPEG_URL}" -O "${FFMPEG_ZIP}"
+        else
+            echo -e "${YELLOW}⚠ 无法下载 ffmpeg，视频功能可能受限${NC}"
+        fi
+        
+        if [ -f "${FFMPEG_ZIP}" ]; then
+            # 解压 ffmpeg
+            unzip -q "${FFMPEG_ZIP}" -d "${PROJECT_ROOT}/ffmpeg_tmp"
+            
+            # 查找并复制 libffmpeg.dylib
+            FRAMEWORK_DIR="${NWJS_DIR}/nwjs.app/Contents/Frameworks/nwjs Framework.framework/Versions"
+            VERSION_DIR=$(ls -d ${FRAMEWORK_DIR}/*/ | head -1)
+            
+            if [ -d "${VERSION_DIR}" ]; then
+                find "${PROJECT_ROOT}/ffmpeg_tmp" -name "libffmpeg.dylib" -exec cp {} "${VERSION_DIR}" \;
+                echo -e "${GREEN}✓ libffmpeg.dylib 已安装${NC}"
+            fi
+            
+            # 清理临时文件
+            rm -rf "${PROJECT_ROOT}/ffmpeg_tmp" "${FFMPEG_ZIP}"
+        fi
+    else
+        echo -e "${GREEN}✓ libffmpeg.dylib 已存在${NC}"
+    fi
 fi
 echo ""
 
