@@ -29,15 +29,17 @@ export interface ChatTable {
   lastMessagePreview?: string; // 最后一条消息预览
 }
 
-// 消息
+// 消息（字段名与数据库一致）
 export interface Message {
-  mesLocalID: number;
-  mesSvrID: number;
-  createTime: number;
-  message: string;
-  messageType: number;
-  des: number;
-  status: number;
+  MesLocalID: number;
+  MesSvrID: number;
+  CreateTime: number;
+  Message: string;
+  Type: number;
+  Des: number;
+  Status: number;
+  ImgStatus?: number;
+  TableVer?: number;
 }
 
 // API 响应

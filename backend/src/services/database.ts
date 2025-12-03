@@ -136,9 +136,9 @@ export class WeChatDatabase {
             let lastMessagePreview = '';
             try {
               const lastMsgResults = db.exec(`
-                SELECT createTime, message, messageType 
+                SELECT CreateTime, Message, Type 
                 FROM "${tableName}" 
-                ORDER BY createTime DESC 
+                ORDER BY CreateTime DESC 
                 LIMIT 1
               `);
               
@@ -252,7 +252,7 @@ export class WeChatDatabase {
         if (tableExistsResults.length > 0 && tableExistsResults[0].values.length > 0) {
           const results = db.exec(`
             SELECT * FROM "${tableName}" 
-            ORDER BY createTime ASC 
+            ORDER BY CreateTime ASC 
             LIMIT ${limit} OFFSET ${offset}
           `);
 
