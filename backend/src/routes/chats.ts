@@ -80,11 +80,19 @@ router.get('/messages', async (req: Request, res: Response) => {
 /**
  * GET /api/chats/view
  * 查看聊天记录 HTML
- * Query: path, userMd5, tableName, nickname
+ * Query: path, userMd5, tableName, nickname, isGroup, startDate, endDate
  */
 router.get('/view', async (req: Request, res: Response) => {
   try {
-    const { path: documentsPath, userMd5, tableName, nickname } = req.query;
+    const { 
+      path: documentsPath, 
+      userMd5, 
+      tableName, 
+      nickname,
+      isGroup,
+      startDate,
+      endDate
+    } = req.query;
 
     if (!documentsPath || !userMd5 || !tableName) {
       return res.status(400).send(`
@@ -104,7 +112,7 @@ router.get('/view', async (req: Request, res: Response) => {
         md5: '',
         wechatId: '',
         nickname: (nickname as string) || '未知',
-        isGroup: false,
+        isGroup: isGroup === 'true',
       },
     };
 
@@ -112,7 +120,11 @@ router.get('/view', async (req: Request, res: Response) => {
       documentsPath as string,
       userMd5 as string,
       tableName as string,
-      chatInfo
+      chatInfo,
+      100, // limit
+      0,   // offset
+      startDate as string | undefined,
+      endDate as string | undefined
     );
     
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -126,6 +138,94 @@ router.get('/view', async (req: Request, res: Response) => {
       <body><h1>加载失败</h1><p>${error.message || '服务器错误'}</p></body>
       </html>
     `);
+  }
+});
+
+/**
+ * GET /api/chats/view/messages
+ * 获取消息列表（用于无限滚动）
+ * Query: path, userMd5, tableName, isGroup, limit, offset, startDate, endDate
+ */
+router.get('/view/messages', async (req: Request, res: Response) => {
+  try {
+    const { 
+      path: documentsPath, 
+      userMd5, 
+      tableName,
+      isGroup,
+      limit = '100',
+      offset = '0',
+      startDate,
+      endDate
+    } = req.query;
+
+    if (!documentsPath || !userMd5 || !tableName) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数',
+      } as ApiResponse<null>);
+    }
+
+    const messages = await db.getMessages(
+      documentsPath as string,
+      userMd5 as string,
+      tableName as string,
+      parseInt(limit as string),
+      parseInt(offset as string),
+      startDate as string | undefined,
+      endDate as string | undefined
+    );
+
+    // 如果是群聊，解析发送者昵称
+    let processedMessages = messages;
+    if (isGroup === 'true') {
+      const contactsMap = await db.getContacts(documentsPath as string, userMd5 as string);
+      const { md5 } = await import('../utils/crypto');
+      const { decode_user_name_info, getFriendlyName } = await import('../utils/crypto');
+      
+      processedMessages = messages.map(msg => {
+        const processed: any = { ...msg };
+        
+        // 如果是文本消息且包含发送者信息
+        if (msg.Type === 1 && msg.Message && msg.Message.includes(':\n')) {
+          const parts = msg.Message.split(':\n');
+          if (parts.length >= 2) {
+            const senderId = parts[0].trim();
+            const messageText = parts.slice(1).join(':\n');
+            
+            // 查找发送者昵称
+            const senderMd5 = md5(senderId);
+            const senderContact = contactsMap.get(senderMd5);
+            let senderName = '';
+            
+            if (senderContact) {
+              senderName = decode_user_name_info(senderContact.dbContactRemark);
+            }
+            
+            // 如果没找到昵称，使用友好名称
+            if (!senderName || senderName === senderId) {
+              senderName = getFriendlyName(senderId, '', false);
+            }
+            
+            processed.sender = senderName;
+            processed.cleanedMessage = messageText;
+          }
+        }
+        
+        return processed;
+      });
+    }
+
+    res.json({
+      success: true,
+      data: processedMessages,
+    } as ApiResponse<any[]>);
+  } catch (error: any) {
+    console.error('获取消息列表失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || '服务器错误',
+    } as ApiResponse<null>);
   }
 });
 

@@ -266,13 +266,17 @@ export class WeChatDatabase {
 
   /**
    * 获取消息列表
+   * @param startDate - 开始日期（YYYY-MM-DD），如果未指定则默认只返回最新一天
+   * @param endDate - 结束日期（YYYY-MM-DD）
    */
   async getMessages(
     documentsPath: string,
     userMd5: string,
     tableName: string,
     limit: number = 100,
-    offset: number = 0
+    offset: number = 0,
+    startDate?: string,
+    endDate?: string
   ): Promise<Message[]> {
     const messages: Message[] = [];
 
@@ -289,9 +293,44 @@ export class WeChatDatabase {
         `);
 
         if (tableExistsResults.length > 0 && tableExistsResults[0].values.length > 0) {
+          // 构建日期筛选条件
+          let dateCondition = '';
+          
+          if (startDate || endDate) {
+            // 用户指定了日期范围
+            const conditions: string[] = [];
+            if (startDate) {
+              const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+              conditions.push(`CreateTime >= ${startTimestamp}`);
+            }
+            if (endDate) {
+              const endTimestamp = Math.floor(new Date(endDate + ' 23:59:59').getTime() / 1000);
+              conditions.push(`CreateTime <= ${endTimestamp}`);
+            }
+            dateCondition = 'WHERE ' + conditions.join(' AND ');
+          } else {
+            // 默认只返回最新一天的数据
+            // 先查询最新消息的时间
+            const maxTimeResults = db.exec(`
+              SELECT MAX(CreateTime) as maxTime FROM "${tableName}"
+            `);
+            
+            if (maxTimeResults.length > 0 && maxTimeResults[0].values.length > 0) {
+              const maxTime = maxTimeResults[0].values[0][0] as number;
+              if (maxTime) {
+                // 计算最新消息当天的开始时间（00:00:00）
+                const maxDate = new Date(maxTime * 1000);
+                maxDate.setHours(0, 0, 0, 0);
+                const dayStartTimestamp = Math.floor(maxDate.getTime() / 1000);
+                dateCondition = `WHERE CreateTime >= ${dayStartTimestamp}`;
+              }
+            }
+          }
+
           const results = db.exec(`
             SELECT * FROM "${tableName}" 
-            ORDER BY CreateTime ASC 
+            ${dateCondition}
+            ORDER BY CreateTime DESC 
             LIMIT ${limit} OFFSET ${offset}
           `);
 

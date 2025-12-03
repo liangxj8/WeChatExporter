@@ -100,7 +100,8 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
         documentsPath,
         user.md5,
         chat.tableName,
-        chat.contact.nickname
+        chat.contact.nickname,
+        chat.contact.isGroup
       );
       
       // 在新标签页打开

@@ -52,13 +52,15 @@ export const chatAPI = {
     documentsPath: string,
     userMd5: string,
     tableName: string,
-    nickname: string
+    nickname: string,
+    isGroup: boolean
   ): string => {
     const params = new URLSearchParams({
       path: documentsPath,
       userMd5,
       tableName,
       nickname,
+      isGroup: isGroup ? 'true' : 'false',
     });
     return `${API_BASE_URL}/chats/view?${params.toString()}`;
   },

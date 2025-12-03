@@ -1,5 +1,6 @@
 import { WeChatDatabase } from './database';
-import { Message, ChatTable } from '../types';
+import { Message, ChatTable, Contact } from '../types';
+import { md5, decode_user_name_info, getFriendlyName } from '../utils/crypto';
 
 export class WeChatExporter {
   private db: WeChatDatabase;
@@ -15,45 +16,286 @@ export class WeChatExporter {
     documentsPath: string,
     userMd5: string,
     tableName: string,
-    chatInfo: ChatTable
+    chatInfo: ChatTable,
+    limit: number = 100,
+    offset: number = 0,
+    startDate?: string,
+    endDate?: string
   ): Promise<string> {
-    const messages = await this.db.getMessages(documentsPath, userMd5, tableName, 10000);
+    const messages = await this.db.getMessages(
+      documentsPath, 
+      userMd5, 
+      tableName, 
+      limit,
+      offset,
+      startDate,
+      endDate
+    );
+    
+    // 如果是群聊，加载联系人信息用于解析昵称
+    let contactsMap: Map<string, Contact> | null = null;
+    if (chatInfo.contact.isGroup) {
+      contactsMap = await this.db.getContacts(documentsPath, userMd5);
+    }
+
+    // 构建 URL 参数
+    const urlParams = new URLSearchParams({
+      path: documentsPath,
+      userMd5,
+      tableName,
+      nickname: chatInfo.contact.nickname,
+      isGroup: chatInfo.contact.isGroup ? 'true' : 'false',
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+    });
 
     let html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>聊天记录 - ${chatInfo.contact.nickname}</title>
+  <title>聊天记录 - ${this.escapeHtml(chatInfo.contact.nickname)}</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .message { margin: 10px 0; padding: 10px; }
-    .message.sent { text-align: right; background: #95ec69; border-radius: 10px; }
-    .message.received { text-align: left; background: #fff; border: 1px solid #ddd; border-radius: 10px; }
-    .time { font-size: 12px; color: #999; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .header { position: sticky; top: 0; background: #f5f5f5; padding: 10px 0; z-index: 100; border-bottom: 1px solid #ddd; }
+    .header h1 { color: #333; margin: 0 0 10px 0; }
+    .header .info { color: #666; margin: 5px 0; font-size: 14px; }
+    .date-filter { margin: 15px 0; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .date-filter label { margin-right: 10px; font-weight: bold; }
+    .date-filter input[type="date"] { padding: 5px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .date-filter button { padding: 6px 15px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+    .date-filter button:hover { background: #06ad56; }
+    .date-filter button.secondary { background: #999; }
+    .date-filter button.secondary:hover { background: #777; }
+    
+    .messages-container { margin-top: 20px; }
+    .message { margin: 10px 0; padding: 10px; clear: both; }
+    .message.sent { text-align: right; }
+    .message.received { text-align: left; }
+    .message-bubble { display: inline-block; max-width: 70%; padding: 10px 15px; border-radius: 10px; word-wrap: break-word; white-space: pre-wrap; }
+    .message.sent .message-bubble { background: #95ec69; }
+    .message.received .message-bubble { background: #fff; border: 1px solid #ddd; }
+    .time { font-size: 12px; color: #999; margin-bottom: 5px; }
+    .sender { font-size: 12px; color: #666; font-weight: bold; margin-bottom: 3px; }
+    
+    .loading { text-align: center; padding: 20px; color: #999; }
+    .no-more { text-align: center; padding: 20px; color: #999; font-size: 14px; }
+    .error { text-align: center; padding: 20px; color: #f56c6c; }
   </style>
 </head>
 <body>
-  <h1>与 ${chatInfo.contact.nickname} 的聊天记录</h1>
-  <p>微信号: ${chatInfo.contact.wechatId}</p>
-  <p>消息数量: ${chatInfo.messageCount}</p>
-  <hr>
+  <div class="header">
+    <h1>与 ${this.escapeHtml(chatInfo.contact.nickname)} 的聊天记录</h1>
+    <p class="info">微信号: ${this.escapeHtml(chatInfo.contact.wechatId)}</p>
+    <div class="date-filter">
+      <label>日期筛选：</label>
+      <input type="date" id="startDate" value="${startDate || ''}">
+      <span>至</span>
+      <input type="date" id="endDate" value="${endDate || ''}">
+      <button onclick="applyDateFilter()">筛选</button>
+      <button class="secondary" onclick="clearDateFilter()">清除</button>
+      <span id="filterInfo" style="margin-left: 15px; color: #666; font-size: 14px;"></span>
+    </div>
+  </div>
+  
+  <div class="messages-container" id="messages">
 `;
 
     for (const msg of messages) {
       const time = new Date(msg.CreateTime * 1000).toLocaleString('zh-CN');
       const className = msg.Des === 0 ? 'sent' : 'received';
-      const content = this.formatMessageContent(msg);
+      let sender = '';
+      let messageToFormat = msg;
+      
+      // 如果是群聊文本消息，先提取发送者
+      if (contactsMap && msg.Type === 1 && msg.Message && msg.Message.includes(':\n')) {
+        const parts = msg.Message.split(':\n');
+        if (parts.length >= 2) {
+          const senderId = parts[0].trim();
+          const messageText = parts.slice(1).join(':\n');
+          
+          // 查找发送者昵称
+          const senderMd5 = md5(senderId);
+          const senderContact = contactsMap.get(senderMd5);
+          let senderName = '';
+          
+          if (senderContact) {
+            senderName = decode_user_name_info(senderContact.dbContactRemark);
+          }
+          
+          // 如果没找到昵称，使用友好名称
+          if (!senderName || senderName === senderId) {
+            senderName = getFriendlyName(senderId, '', false);
+          }
+          
+          sender = senderName;
+          // 创建一个新的消息对象，Message 字段只包含实际内容
+          messageToFormat = { ...msg, Message: messageText };
+        }
+      }
+      
+      // 格式化消息内容
+      const content = this.formatMessageContent(messageToFormat);
       
       html += `
   <div class="message ${className}">
-    <div class="time">${time}</div>
-    <div class="content">${this.escapeHtml(content)}</div>
+    <div class="time">${this.escapeHtml(time)}</div>
+    ${sender ? `<div class="sender">${this.escapeHtml(sender)}</div>` : ''}
+    <div class="message-bubble">${this.escapeHtml(content)}</div>
   </div>
 `;
     }
 
     html += `
+  </div>
+  
+  <div class="loading" id="loading" style="display: none;">加载中...</div>
+  <div class="no-more" id="noMore" style="display: none;">没有更多消息了</div>
+  <div class="error" id="error" style="display: none;"></div>
+
+  <script>
+    const API_BASE = window.location.origin + '/api/chats/view/messages';
+    const params = new URLSearchParams(window.location.search);
+    let currentOffset = ${messages.length};
+    let isLoading = false;
+    let hasMore = ${messages.length === limit ? 'true' : 'false'};
+    let currentStartDate = params.get('startDate') || '';
+    let currentEndDate = params.get('endDate') || '';
+
+    // 更新筛选信息显示
+    function updateFilterInfo() {
+      const info = document.getElementById('filterInfo');
+      if (currentStartDate || currentEndDate) {
+        const start = currentStartDate || '最早';
+        const end = currentEndDate || '最新';
+        info.textContent = \`当前筛选: \${start} 至 \${end}\`;
+      } else {
+        info.textContent = '显示最新一天的消息';
+      }
+    }
+    updateFilterInfo();
+
+    // 应用日期筛选
+    function applyDateFilter() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      const newParams = new URLSearchParams(window.location.search);
+      if (startDate) newParams.set('startDate', startDate);
+      else newParams.delete('startDate');
+      
+      if (endDate) newParams.set('endDate', endDate);
+      else newParams.delete('endDate');
+      
+      window.location.search = newParams.toString();
+    }
+
+    // 清除日期筛选
+    function clearDateFilter() {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      const newParams = new URLSearchParams(window.location.search);
+      newParams.delete('startDate');
+      newParams.delete('endDate');
+      window.location.search = newParams.toString();
+    }
+
+    // 加载更多消息
+    async function loadMore() {
+      if (isLoading || !hasMore) return;
+      
+      isLoading = true;
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      
+      try {
+        const fetchParams = new URLSearchParams({
+          path: params.get('path'),
+          userMd5: params.get('userMd5'),
+          tableName: params.get('tableName'),
+          isGroup: params.get('isGroup') || 'false',
+          limit: '100',
+          offset: String(currentOffset),
+          ...(currentStartDate && { startDate: currentStartDate }),
+          ...(currentEndDate && { endDate: currentEndDate }),
+        });
+        
+        const response = await fetch(\`\${API_BASE}?\${fetchParams.toString()}\`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+          appendMessages(data.data);
+          currentOffset += data.data.length;
+          hasMore = data.data.length === 100;
+        } else {
+          hasMore = false;
+          document.getElementById('noMore').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('加载失败:', error);
+        document.getElementById('error').textContent = '加载失败，请刷新重试';
+        document.getElementById('error').style.display = 'block';
+      } finally {
+        isLoading = false;
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    // 添加消息到页面
+    function appendMessages(messages) {
+      const container = document.getElementById('messages');
+      
+      messages.forEach(msg => {
+        const time = new Date(msg.CreateTime * 1000).toLocaleString('zh-CN');
+        const className = msg.Des === 0 ? 'sent' : 'received';
+        
+        // 使用后端解析好的发送者和消息内容
+        const sender = msg.sender || '';
+        const content = formatMessageContent({
+          ...msg,
+          Message: msg.cleanedMessage || msg.Message
+        });
+        
+        const html = \`
+          <div class="message \${className}">
+            <div class="time">\${escapeHtml(time)}</div>
+            \${sender ? \`<div class="sender">\${escapeHtml(sender)}</div>\` : ''}
+            <div class="message-bubble">\${escapeHtml(content)}</div>
+          </div>
+        \`;
+        container.innerHTML += html;
+      });
+    }
+    
+    // 格式化消息内容
+    function formatMessageContent(msg) {
+      switch (msg.Type) {
+        case 1: return msg.Message || '[文本消息]';
+        case 3: return '[图片]';
+        case 34: return '[语音]';
+        case 43: return '[视频]';
+        case 47: return '[表情]';
+        case 48: return '[位置]';
+        case 49: return '[分享]';
+        case 10000: return msg.Message || '[系统消息]';
+        default: return msg.Message || \`[消息类型: \${msg.Type}]\`;
+      }
+    }
+    
+    // HTML 转义
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 滚动监听
+    window.addEventListener('scroll', () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        loadMore();
+      }
+    });
+  </script>
 </body>
 </html>
 `;
