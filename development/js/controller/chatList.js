@@ -18,41 +18,93 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
     $scope.documentsPath = $stateParams.documentsPath;
     $scope.messageLimit = 10;
 
-    $scope.parseMmsetting = function (mmsettingPath) {
+    // 解析 LoginInfo2.dat 获取所有用户的微信号和昵称
+    $scope.parseLoginInfo = function(documentsPath) {
+        var fs = require('fs');
+        var path = require('path');
+        var loginInfoPath = path.join(documentsPath, 'LoginInfo2.dat');
+        
+        if (!fs.existsSync(loginInfoPath)) {
+            console.log("LoginInfo2.dat 不存在");
+            return {};
+        }
+        
         try {
-            var fs = require('fs');
-            var plist = require('plist');
-            var command = "plutil -convert xml1 "+mmsettingPath;
-            //console.log("command:",command);
-            var stdOut = require('child_process').execSync( command,{// child_process会调用sh命令，pc会调用cmd.exe命令
-                encoding: "utf8"
-            } );
-
-            var content = fs.readFileSync(mmsettingPath, 'utf8');
-            var obj = plist.parse(content).$objects;
-            var headUrl = "";
-            // find headURL
-            for (var i=0;i<obj.length;i++){
-                if (typeof obj[i] == "string"){
-                    var pos1 = obj[i].indexOf('http://wx.qlogo.cn/');
-                    if (pos1==0 & obj[i].slice(-3)=='132'){
-                        // console.log(obj[i])
-                        headUrl = obj[i]
+            // 读取二进制文件，但尝试以字符串方式提取信息
+            var buffer = fs.readFileSync(loginInfoPath);
+            var content = buffer.toString('binary');
+            var userInfoMap = {};
+            
+            // 查找所有 wxid_ 模式的微信号
+            var wxidPattern = /(wxid_[a-z0-9]{10,20})/g;
+            var matches = content.match(wxidPattern);
+            
+            if (matches) {
+                // 去重
+                var uniqueWxids = [];
+                var seen = {};
+                for (var i = 0; i < matches.length; i++) {
+                    if (!seen[matches[i]]) {
+                        uniqueWxids.push(matches[i]);
+                        seen[matches[i]] = true;
+                    }
+                }
+                
+                console.log("LoginInfo2.dat 中找到", uniqueWxids.length, "个微信号:", uniqueWxids);
+                
+                // 对每个微信号，尝试提取相关信息
+                for (var j = 0; j < uniqueWxids.length; j++) {
+                    var wxid = uniqueWxids[j];
+                    var wxidIndex = content.indexOf(wxid);
+                    
+                    if (wxidIndex > -1) {
+                        // 提取 wxid 后面约 100 字节的内容
+                        var afterWxid = content.substring(wxidIndex + wxid.length, wxidIndex + wxid.length + 100);
+                        
+                        // 查找可能的昵称（可打印字符，2-30 个字符）
+                        var possibleNames = [];
+                        var currentName = '';
+                        
+                        for (var k = 0; k < afterWxid.length; k++) {
+                            var charCode = afterWxid.charCodeAt(k);
+                            // 可打印 ASCII 字符或中文字符
+                            if ((charCode >= 0x20 && charCode <= 0x7E) || charCode >= 0x4E00) {
+                                currentName += afterWxid[k];
+                            } else {
+                                if (currentName.length >= 2 && currentName.length <= 30) {
+                                    possibleNames.push(currentName);
+                                }
+                                currentName = '';
+                            }
+                        }
+                        
+                        // 选择最可能的昵称（排除特殊模式）
+                        var nickname = "";
+                        for (var m = 0; m < possibleNames.length; m++) {
+                            var name = possibleNames[m].trim();
+                            // 过滤掉看起来像配置项、手机号、或纯符号的字符串
+                            if (name && 
+                                !/^[A-Z_]+$/.test(name) && 
+                                !/^\+?\d+$/.test(name) &&
+                                !/^[^a-zA-Z0-9\u4e00-\u9fa5]+$/.test(name)) {
+                                nickname = name;
+                                break;
+                            }
+                        }
+                        
+                        userInfoMap[wxid] = {
+                            wechatID: wxid,
+                            nickname: nickname || wxid
+                        };
                     }
                 }
             }
-            return {
-                nickname:   obj[3] || "微信用户", //昵称
-                wechatID:   obj[19] || "", //微信号
-                headUrl:    headUrl, //头像1
-            };
+            
+            console.log("解析到的用户信息:", userInfoMap);
+            return userInfoMap;
         } catch (error) {
-            console.error("parseMmsetting 错误:", error);
-            return {
-                nickname: "微信用户",
-                wechatID: "",
-                headUrl: ""
-            };
+            console.error("解析 LoginInfo2.dat 失败:", error);
+            return {};
         }
     };
 
@@ -60,55 +112,92 @@ WechatBackupControllers.controller('ChatListController',["$scope","$state", "$st
     $scope.ChatListController = function () {
         console.log("constructor");
         console.log($stateParams);
-        // 1. 查看当前目录下的所有文件
+        
         var fs = require('fs');
         var path = require('path');
+        
+        // 1. 解析 LoginInfo2.dat 获取所有用户信息
+        var loginUserInfo = $scope.parseLoginInfo($scope.documentsPath);
+        
+        // 2. 扫描用户目录
         var documentsFileList = fs.readdirSync($scope.documentsPath);
-        // 2. 找到符合md5格式的文件夹        // 3. 将这几个文件夹的显示在页面上
-        for(var i=0;i<documentsFileList.length;i++)
-        {
-            //console.log(documentsFileList[i].length);
-            if(documentsFileList[i].length == 32 && documentsFileList[i]!="00000000000000000000000000000000"){
-                console.log(documentsFileList[i]);
-                $scope.wechatUserList.push(documentsFileList[i]);
+        
+        for(var i = 0; i < documentsFileList.length; i++) {
+            var dirName = documentsFileList[i];
+            
+            // 检查是否是 32 位 MD5 格式的用户目录
+            if(dirName.length === 32 && dirName !== "00000000000000000000000000000000") {
+                console.log("找到用户目录:", dirName);
+                $scope.wechatUserList.push(dirName);
                 
-                // 尝试查找 mmsetting 文件（支持新旧文件名）
-                var mmsettingPath = path.join($scope.documentsPath, documentsFileList[i], 'mmsetting.archive');
-                var mmsettingextPath = path.join($scope.documentsPath, documentsFileList[i], 'mmsettingext.archive');
-                var lastHeadImagePath = path.join($scope.documentsPath, documentsFileList[i], 'lastHeadImage');
+                var lastHeadImagePath = path.join($scope.documentsPath, dirName, 'lastHeadImage');
                 
-                var myInfo = null;
+                // 3. 尝试从根目录的 LocalInfo.data 获取当前用户的微信号
+                var wechatID = "";
+                var nickname = "";
                 
-                // 尝试解析 mmsetting.archive
-                if (fs.existsSync(mmsettingPath)) {
-                    console.log("找到 mmsetting.archive:", mmsettingPath);
-                    myInfo = $scope.parseMmsetting(mmsettingPath);
-                } 
-                // 尝试解析 mmsettingext.archive（虽然通常不包含用户信息，但尝试一下）
-                else if (fs.existsSync(mmsettingextPath)) {
-                    console.log("找到 mmsettingext.archive，使用默认值:", mmsettingextPath);
-                    myInfo = $scope.parseMmsetting(mmsettingextPath);
-                } 
-                // 如果都不存在，使用默认值
-                else {
-                    console.log("未找到 mmsetting 文件，使用默认值");
-                    myInfo = {
-                        nickname: "微信用户",
-                        wechatID: "",
-                        headUrl: ""
-                    };
+                // 方法：读取根目录的 LocalInfo.data
+                var localInfoPath = path.join($scope.documentsPath, 'LocalInfo.data');
+                
+                try {
+                    if (fs.existsSync(localInfoPath)) {
+                        var buffer = fs.readFileSync(localInfoPath);
+                        var content = buffer.toString('binary');
+                        
+                        // 查找微信号
+                        var wxidMatch = content.match(/wxid_[a-z0-9]{10,20}/);
+                        if (wxidMatch && loginUserInfo[wxidMatch[0]]) {
+                            // 检查这个微信号是否属于当前目录
+                            // 简单方法：假设 LocalInfo.data 对应最近活跃的用户
+                            wechatID = wxidMatch[0];
+                            nickname = loginUserInfo[wechatID].nickname;
+                            console.log("从 LocalInfo.data 获取到用户信息:", wechatID, nickname);
+                        }
+                    }
+                } catch (e) {
+                    console.log("无法读取 LocalInfo.data:", e.message);
                 }
                 
-                // 如果没有头像 URL，尝试使用 lastHeadImage
-                if (!myInfo.headUrl && fs.existsSync(lastHeadImagePath)) {
-                    console.log("使用 lastHeadImage 作为头像:", lastHeadImagePath);
-                    myInfo.headUrl = 'file://' + lastHeadImagePath;
+                // 4. 如果没有获取到信息，尝试从 loginUserInfo 中匹配
+                if (!wechatID && Object.keys(loginUserInfo).length > 0) {
+                    // 使用第一个可用的用户信息（假设按顺序）
+                    var availableWxids = Object.keys(loginUserInfo);
+                    if (availableWxids.length >= i + 1) {
+                        wechatID = availableWxids[i];
+                        nickname = loginUserInfo[wechatID].nickname;
+                        console.log("使用 LoginInfo2.dat 中的用户信息:", wechatID, nickname);
+                    }
                 }
                 
-                $scope.everLoggedThisPhoneWchatUsersInfo[documentsFileList[i]] = myInfo;
+                // 5. 如果仍然没有信息，使用 MD5 前缀作为默认值
+                if (!nickname) {
+                    var userPrefix = dirName.substring(0, 8);
+                    nickname = "用户-" + userPrefix;
+                    console.log("使用默认昵称:", nickname);
+                }
+                if (!wechatID) {
+                    wechatID = dirName;
+                }
+                
+                // 6. 构建用户信息对象
+                var userInfo = {
+                    nickname: nickname,
+                    wechatID: wechatID,
+                    headUrl: ""
+                };
+                
+                // 7. 使用 lastHeadImage 作为头像（如果存在）
+                if (fs.existsSync(lastHeadImagePath)) {
+                    console.log("使用 lastHeadImage 作为头像");
+                    userInfo.headUrl = 'file://' + lastHeadImagePath;
+                }
+                
+                $scope.everLoggedThisPhoneWchatUsersInfo[dirName] = userInfo;
             }
         }
-        console.log($scope.everLoggedThisPhoneWchatUsersInfo)
+        
+        console.log("扫描完成，找到", $scope.wechatUserList.length, "个用户");
+        console.log("用户信息:", $scope.everLoggedThisPhoneWchatUsersInfo);
     };
     // 执行"构造函数"
     $scope.ChatListController();
