@@ -26,6 +26,39 @@ If there is any non-Chinese user trying to use this software, open an issue let 
 
 目前支持导出iOS系统导出，软件运行仅限MacOS系统。（其实安卓和Windows系统也能用，只是现在懒得适配多平台）
 
+## 📚 更新说明（2024年12月）
+
+本项目已更新以支持：
+- ✅ **Apple Silicon (M系列芯片) 原生支持**
+- ✅ **新版微信 iOS 数据结构** (支持 mmsettingext.archive 和多数据库结构)
+- ✅ **Python 3 兼容**
+- ✅ **自动化安装脚本**
+
+详细文档请查看：
+- [完整安装指南](INSTALL.md) - 推荐首次使用
+- [使用指南和后续步骤](docs/NEXT_STEPS.md)
+- [新版微信数据库变化说明](docs/WECHAT_DB_CHANGES.md)
+- [故障排查指南](TROUBLESHOOTING.md)
+- [更多技术文档](docs/)
+
+## 🚀 快速开始
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/liangxj8/WeChatExporter
+cd WeChatExporter
+
+# 2. 运行环境配置（自动安装所有依赖）
+./scripts/setup.sh
+
+# 3. 启动应用
+./scripts/run.sh
+```
+
+详细步骤请参考 [INSTALL.md](INSTALL.md)
+
+---
+
 使用方法：
 ### 一、准备工作
 Step1:数据导出：
