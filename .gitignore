@@ -1,6 +1,8 @@
 /nw
 /nwjs
 nwjs-*.zip
+ffmpeg.zip
+ffmpeg_tmp/
 /development/node_modules
 /development/package-lock.json
 /development/*.bak
