@@ -93,15 +93,18 @@ router.post('/export', async (req: Request, res: Response) => {
       } as ApiResponse<null>);
     }
 
+    // 对文件名进行编码，避免特殊字符导致 header 错误
+    const safeFilename = encodeURIComponent(chatInfo.contact.nickname);
+    
     if (format === 'html') {
       const html = await exporter.exportToHtml(documentsPath, userMd5, tableName, chatInfo);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${chatInfo.contact.nickname}_chat.html"`);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}_chat.html`);
       res.send(html);
     } else if (format === 'json') {
       const json = await exporter.exportToJson(documentsPath, userMd5, tableName, chatInfo);
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${chatInfo.contact.nickname}_chat.json"`);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}_chat.json`);
       res.json(json);
     } else {
       res.status(400).json({
