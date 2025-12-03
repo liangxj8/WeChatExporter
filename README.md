@@ -35,10 +35,11 @@ If there is any non-Chinese user trying to use this software, open an issue let 
 - ✅ **自动化安装脚本**
 
 详细文档请查看：
-- [完整安装指南](INSTALL.md) - 推荐首次使用
+- [完整安装指南](docs/INSTALL.md) - 推荐首次使用
 - [使用指南和后续步骤](docs/NEXT_STEPS.md)
+- [故障排查指南](docs/TROUBLESHOOTING.md)
+- [Apple Silicon 支持说明](docs/APPLE_SILICON_UPGRADE.md)
 - [新版微信数据库变化说明](docs/WECHAT_DB_CHANGES.md)
-- [故障排查指南](TROUBLESHOOTING.md)
 - [更多技术文档](docs/)
 
 ## 🚀 快速开始
@@ -55,7 +56,7 @@ cd WeChatExporter
 ./scripts/run.sh
 ```
 
-详细步骤请参考 [INSTALL.md](INSTALL.md)
+详细步骤请参考 [INSTALL.md](docs/INSTALL.md)
 
 ---
 
