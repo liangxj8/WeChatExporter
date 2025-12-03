@@ -78,13 +78,65 @@ router.get('/messages', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/chats/export
- * 导出聊天记录
- * Body: { path, userMd5, table, format: 'html' | 'json', chatInfo }
+ * GET /api/chats/view
+ * 查看聊天记录 HTML
+ * Query: path, userMd5, tableName, nickname
  */
-router.post('/export', async (req: Request, res: Response) => {
+router.get('/view', async (req: Request, res: Response) => {
   try {
-    const { path: documentsPath, userMd5, table: tableName, format, chatInfo } = req.body;
+    const { path: documentsPath, userMd5, tableName, nickname } = req.query;
+
+    if (!documentsPath || !userMd5 || !tableName) {
+      return res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"><title>错误</title></head>
+        <body><h1>参数错误</h1><p>缺少必要参数</p></body>
+        </html>
+      `);
+    }
+
+    // 构造 chatInfo 用于导出
+    const chatInfo: ChatTable = {
+      tableName: tableName as string,
+      messageCount: 0,
+      contact: {
+        md5: '',
+        wechatId: '',
+        nickname: (nickname as string) || '未知',
+        isGroup: false,
+      },
+    };
+
+    const html = await exporter.exportToHtml(
+      documentsPath as string,
+      userMd5 as string,
+      tableName as string,
+      chatInfo
+    );
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error: any) {
+    console.error('查看聊天记录失败:', error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="UTF-8"><title>错误</title></head>
+      <body><h1>加载失败</h1><p>${error.message || '服务器错误'}</p></body>
+      </html>
+    `);
+  }
+});
+
+/**
+ * POST /api/chats/download
+ * 下载聊天记录（JSON 格式）
+ * Body: { path, userMd5, table, chatInfo }
+ */
+router.post('/download', async (req: Request, res: Response) => {
+  try {
+    const { path: documentsPath, userMd5, table: tableName, chatInfo } = req.body;
 
     if (!documentsPath || !userMd5 || !tableName || !chatInfo) {
       return res.status(400).json({
@@ -96,24 +148,12 @@ router.post('/export', async (req: Request, res: Response) => {
     // 对文件名进行编码，避免特殊字符导致 header 错误
     const safeFilename = encodeURIComponent(chatInfo.contact.nickname);
     
-    if (format === 'html') {
-      const html = await exporter.exportToHtml(documentsPath, userMd5, tableName, chatInfo);
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}_chat.html`);
-      res.send(html);
-    } else if (format === 'json') {
-      const json = await exporter.exportToJson(documentsPath, userMd5, tableName, chatInfo);
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}_chat.json`);
-      res.json(json);
-    } else {
-      res.status(400).json({
-        success: false,
-        error: '不支持的导出格式，请使用 html 或 json',
-      } as ApiResponse<null>);
-    }
+    const json = await exporter.exportToJson(documentsPath, userMd5, tableName, chatInfo);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}_chat.json`);
+    res.json(json);
   } catch (error: any) {
-    console.error('导出聊天记录失败:', error);
+    console.error('下载聊天记录失败:', error);
     res.status(500).json({
       success: false,
       error: error.message || '服务器错误',

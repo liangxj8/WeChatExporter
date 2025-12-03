@@ -94,38 +94,51 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
     }
   };
 
-  const handleExport = async (chat: ChatTable, format: 'html' | 'json') => {
-    setExporting(chat.tableName);
+  const handleView = (chat: ChatTable) => {
     try {
-      const result = await chatAPI.exportChat(documentsPath, user.md5, chat.tableName, format, chat);
+      const viewUrl = chatAPI.getViewUrl(
+        documentsPath,
+        user.md5,
+        chat.tableName,
+        chat.contact.nickname
+      );
       
-      if (format === 'html') {
-        // HTML 格式：在新窗口中打开
-        const htmlContent = typeof result === 'string' ? result : '';
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.document.write(htmlContent);
-          newWindow.document.close();
-          message.success('已在新窗口中打开聊天记录！');
-        } else {
-          message.error('无法打开新窗口，请检查浏览器弹窗设置');
-        }
+      // 在新标签页打开
+      const newWindow = window.open(viewUrl, '_blank');
+      
+      if (newWindow) {
+        // 聚焦到新标签页
+        newWindow.focus();
+        message.success('已在新标签页中打开聊天记录！');
       } else {
-        // JSON 格式：下载文件
-        const blob = new Blob([JSON.stringify(result, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${chat.contact.nickname}_chat.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
-        message.success('导出成功！');
+        // 浏览器可能阻止了弹窗
+        message.warning('无法打开新标签页，请检查浏览器弹窗设置');
       }
     } catch (err: any) {
-      console.error('导出失败:', err);
-      message.error(err.response?.data?.error || err.message || '导出失败');
+      console.error('打开失败:', err);
+      message.error('打开失败，请重试');
+    }
+  };
+
+  const handleDownload = async (chat: ChatTable) => {
+    setExporting(chat.tableName);
+    try {
+      const result = await chatAPI.downloadChat(documentsPath, user.md5, chat.tableName, chat);
+      
+      // 下载 JSON 文件
+      const blob = new Blob([JSON.stringify(result, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${chat.contact.nickname}_chat.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success('下载成功！');
+    } catch (err: any) {
+      console.error('下载失败:', err);
+      message.error(err.response?.data?.error || err.message || '下载失败');
     } finally {
       setExporting(null);
     }
@@ -167,8 +180,7 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                   <Button
                     size="small"
                     icon={<EyeOutlined />}
-                    onClick={() => handleExport(chat, 'html')}
-                    loading={exporting === chat.tableName}
+                    onClick={() => handleView(chat)}
                     type="primary"
                   >
                     查看
@@ -176,7 +188,7 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                   <Button
                     size="small"
                     icon={<DownloadOutlined />}
-                    onClick={() => handleExport(chat, 'json')}
+                    onClick={() => handleDownload(chat)}
                     loading={exporting === chat.tableName}
                   >
                     导出JSON

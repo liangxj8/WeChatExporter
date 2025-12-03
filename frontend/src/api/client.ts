@@ -45,24 +45,43 @@ export const chatAPI = {
     return response.data;
   },
 
-  exportChat: async (
+  /**
+   * 获取查看聊天记录的 URL（GET 请求，可直接在浏览器打开）
+   */
+  getViewUrl: (
+    documentsPath: string,
+    userMd5: string,
+    tableName: string,
+    nickname: string
+  ): string => {
+    const params = new URLSearchParams({
+      path: documentsPath,
+      userMd5,
+      tableName,
+      nickname,
+    });
+    return `${API_BASE_URL}/chats/view?${params.toString()}`;
+  },
+
+  /**
+   * 下载聊天记录（JSON 格式）
+   */
+  downloadChat: async (
     documentsPath: string,
     userMd5: string,
     table: string,
-    format: 'html' | 'json',
     chatInfo: ChatTable
   ) => {
     const response = await client.post(
-      '/chats/export',
+      '/chats/download',
       {
         path: documentsPath,
         userMd5,
         table,
-        format,
         chatInfo,
       },
       {
-        responseType: format === 'html' ? 'text' : 'json',
+        responseType: 'json',
       }
     );
     return response.data;
