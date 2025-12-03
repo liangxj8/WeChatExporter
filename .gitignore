@@ -1,15 +1,55 @@
-/nw
-/nwjs
-nwjs-*.zip
-nwjs-sdk-*.zip
-ffmpeg.zip
-ffmpeg_tmp/
-/development/node_modules
-/development/package-lock.json
-/development/*.bak
-/build
-/webackapp
-/development/output
-/development/test.js
-/distHtml
-/htmltopdf/vendor
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Development
+*.bak
+*.tmp
+
+# NW.js
+nwjs-*/
+nwjs-v*/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test
+coverage/
+.nyc_output/
+
+# Temporary files
+temp/
+tmp/
+*.cache
+
+# Project specific
+development/node_modules/
+development/dist/
+backend/node_modules/
+backend/dist/
+frontend/node_modules/
+frontend/dist/
