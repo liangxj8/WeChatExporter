@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, List, Button, Spin, Alert, Tag, Input, message, Space } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DownloadOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { chatAPI } from '../api/client';
 import type { UserInfo, ChatTable } from '../types';
 
@@ -99,18 +99,30 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
     try {
       const result = await chatAPI.exportChat(documentsPath, user.md5, chat.tableName, format, chat);
       
-      // 创建下载链接
-      const blob = new Blob([typeof result === 'string' ? result : JSON.stringify(result, null, 2)], {
-        type: format === 'html' ? 'text/html' : 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${chat.contact.nickname}_chat.${format}`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      message.success('导出成功！');
+      if (format === 'html') {
+        // HTML 格式：在新窗口中打开
+        const htmlContent = typeof result === 'string' ? result : '';
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+          message.success('已在新窗口中打开聊天记录！');
+        } else {
+          message.error('无法打开新窗口，请检查浏览器弹窗设置');
+        }
+      } else {
+        // JSON 格式：下载文件
+        const blob = new Blob([JSON.stringify(result, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${chat.contact.nickname}_chat.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        message.success('导出成功！');
+      }
     } catch (err: any) {
       console.error('导出失败:', err);
       message.error(err.response?.data?.error || err.message || '导出失败');
@@ -154,11 +166,12 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                 actions={[
                   <Button
                     size="small"
-                    icon={<DownloadOutlined />}
+                    icon={<EyeOutlined />}
                     onClick={() => handleExport(chat, 'html')}
                     loading={exporting === chat.tableName}
+                    type="primary"
                   >
-                    HTML
+                    查看
                   </Button>,
                   <Button
                     size="small"
@@ -166,7 +179,7 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                     onClick={() => handleExport(chat, 'json')}
                     loading={exporting === chat.tableName}
                   >
-                    JSON
+                    导出JSON
                   </Button>,
                 ]}
               >
