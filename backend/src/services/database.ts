@@ -203,7 +203,7 @@ export class WeChatDatabase {
               },
               lastMessageTime,
               lastMessagePreview,
-              isPinned: false, // 默认不置顶，可以后续从配置读取
+              // 不设置 isPinned，纯按时间排序
             });
           }
         }
@@ -214,19 +214,14 @@ export class WeChatDatabase {
       }
     }
 
-    // 排序：1. 置顶的在前  2. 按最后消息时间倒序
+    // 按最后消息时间倒序排列（最近的聊天在最前面）
     chatTables.sort((a, b) => {
-      // 置顶的永远在前
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      
-      // 都置顶或都不置顶，按最后消息时间倒序
       const timeA = a.lastMessageTime || 0;
       const timeB = b.lastMessageTime || 0;
       return timeB - timeA; // 倒序：新的在前
     });
 
-    console.log(`找到 ${chatTables.length} 个聊天表（已按时间排序）`);
+    console.log(`找到 ${chatTables.length} 个聊天表（已按最后消息时间倒序排列）`);
     return chatTables;
   }
 

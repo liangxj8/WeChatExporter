@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, List, Button, Spin, Alert, Tag, Input, message, Space } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, PushpinFilled, ClockCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DownloadOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { chatAPI } from '../api/client';
 import type { UserInfo, ChatTable } from '../types';
 
@@ -119,42 +119,6 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
     }
   };
 
-  const togglePin = (chat: ChatTable) => {
-    // 更新本地状态
-    const newIsPinned = !chat.isPinned;
-    
-    setChats(prevChats => {
-      const updatedChats = prevChats.map(c =>
-        c.tableName === chat.tableName ? { ...c, isPinned: newIsPinned } : c
-      );
-      
-      // 重新排序
-      return updatedChats.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        const timeA = a.lastMessageTime || 0;
-        const timeB = b.lastMessageTime || 0;
-        return timeB - timeA;
-      });
-    });
-    
-    setFilteredChats(prevChats => {
-      const updatedChats = prevChats.map(c =>
-        c.tableName === chat.tableName ? { ...c, isPinned: newIsPinned } : c
-      );
-      
-      return updatedChats.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        const timeA = a.lastMessageTime || 0;
-        const timeB = b.lastMessageTime || 0;
-        return timeB - timeA;
-      });
-    });
-
-    message.success(newIsPinned ? '已置顶' : '已取消置顶');
-  };
-
   return (
     <div>
       <Button onClick={onBack} icon={<ArrowLeftOutlined />} style={{ marginBottom: 16 }}>
@@ -190,15 +154,6 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                 actions={[
                   <Button
                     size="small"
-                    type={chat.isPinned ? 'primary' : 'default'}
-                    icon={<PushpinFilled />}
-                    onClick={() => togglePin(chat)}
-                    title={chat.isPinned ? '取消置顶' : '置顶'}
-                  >
-                    {chat.isPinned ? '取消' : '置顶'}
-                  </Button>,
-                  <Button
-                    size="small"
                     icon={<DownloadOutlined />}
                     onClick={() => handleExport(chat, 'html')}
                     loading={exporting === chat.tableName}
@@ -217,17 +172,14 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
               >
                 <List.Item.Meta
                   title={
-                    <Space>
-                      {chat.isPinned && <PushpinFilled style={{ color: '#faad14' }} />}
-                      <span>
-                        {chat.contact.nickname}
-                        {chat.contact.isGroup && (
-                          <Tag color="blue" style={{ marginLeft: 8 }}>
-                            群聊
-                          </Tag>
-                        )}
-                      </span>
-                    </Space>
+                    <span>
+                      {chat.contact.nickname}
+                      {chat.contact.isGroup && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>
+                          群聊
+                        </Tag>
+                      )}
+                    </span>
                   }
                   description={
                     <Space direction="vertical" size={0} style={{ width: '100%' }}>
