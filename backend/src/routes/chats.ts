@@ -230,6 +230,41 @@ router.get('/view/messages', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/chats/dates
+ * 获取聊天的所有消息日期列表
+ * Query: path, userMd5, tableName
+ */
+router.get('/dates', async (req: Request, res: Response) => {
+  try {
+    const { path: documentsPath, userMd5, tableName } = req.query;
+
+    if (!documentsPath || !userMd5 || !tableName) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数',
+      } as ApiResponse<null>);
+    }
+
+    const dates = await db.getMessageDates(
+      documentsPath as string,
+      userMd5 as string,
+      tableName as string
+    );
+
+    res.json({
+      success: true,
+      data: dates,
+    } as ApiResponse<string[]>);
+  } catch (error: any) {
+    console.error('获取日期列表失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || '服务器错误',
+    } as ApiResponse<null>);
+  }
+});
+
+/**
  * POST /api/chats/download
  * 下载聊天记录（JSON 格式）
  * Body: { path, userMd5, table, chatInfo }

@@ -367,6 +367,58 @@ export class WeChatDatabase {
   }
 
   /**
+   * 获取聊天的所有消息日期列表
+   */
+  async getMessageDates(
+    documentsPath: string,
+    userMd5: string,
+    tableName: string
+  ): Promise<string[]> {
+    const dates: Set<string> = new Set();
+
+    // 尝试从各个 message 数据库中查找
+    for (let i = 1; i <= 4; i++) {
+      const db = await this.openMessageDb(documentsPath, userMd5, i);
+      if (!db) continue;
+
+      try {
+        // 检查表是否存在
+        const tableExistsResults = db.exec(`
+          SELECT name FROM SQLITE_MASTER 
+          WHERE type = 'table' AND name = '${tableName}'
+        `);
+
+        if (tableExistsResults.length > 0 && tableExistsResults[0].values.length > 0) {
+          // 查询所有不同的日期
+          const results = db.exec(`
+            SELECT DISTINCT date(CreateTime, 'unixepoch', 'localtime') as date 
+            FROM "${tableName}" 
+            ORDER BY date DESC
+          `);
+
+          if (results.length > 0 && results[0].values.length > 0) {
+            for (const row of results[0].values) {
+              const date = row[0] as string;
+              if (date) {
+                dates.add(date);
+              }
+            }
+          }
+
+          db.close();
+          break;
+        }
+      } catch (error) {
+        console.error(`从 message_${i}.sqlite 读取日期失败:`, error);
+      } finally {
+        if (db) db.close();
+      }
+    }
+
+    return Array.from(dates).sort((a, b) => b.localeCompare(a)); // 倒序
+  }
+
+  /**
    * 从表名提取聊天对象的 MD5
    */
   private extractChatterMd5(tableName: string): string {

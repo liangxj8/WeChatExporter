@@ -55,6 +55,7 @@ export class WeChatExporter {
 <head>
   <meta charset="UTF-8">
   <title>聊天记录 - ${this.escapeHtml(chatInfo.contact.nickname)}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
     .header { position: sticky; top: 0; background: #f5f5f5; padding: 10px 0; z-index: 100; border-bottom: 1px solid #ddd; }
@@ -62,7 +63,7 @@ export class WeChatExporter {
     .header .info { color: #666; margin: 5px 0; font-size: 14px; }
     .date-filter { margin: 15px 0; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .date-filter label { margin-right: 10px; font-weight: bold; }
-    .date-filter input[type="date"] { padding: 5px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .date-filter input[type="text"] { padding: 6px 10px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; width: 140px; cursor: pointer; }
     .date-filter button { padding: 6px 15px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
     .date-filter button:hover { background: #06ad56; }
     .date-filter button.secondary { background: #999; }
@@ -89,9 +90,9 @@ export class WeChatExporter {
     <p class="info">微信号: ${this.escapeHtml(chatInfo.contact.wechatId)}</p>
     <div class="date-filter">
       <label>日期筛选：</label>
-      <input type="date" id="startDate" value="${startDate || ''}">
+      <input type="text" id="startDate" placeholder="开始日期" readonly>
       <span>至</span>
-      <input type="date" id="endDate" value="${endDate || ''}">
+      <input type="text" id="endDate" placeholder="结束日期" readonly>
       <button onclick="applyDateFilter()">筛选</button>
       <button class="secondary" onclick="clearDateFilter()">清除</button>
       <span id="filterInfo" style="margin-left: 15px; color: #666; font-size: 14px;"></span>
@@ -153,14 +154,71 @@ export class WeChatExporter {
   <div class="no-more" id="noMore" style="display: none;">没有更多消息了</div>
   <div class="error" id="error" style="display: none;"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
   <script>
     const API_BASE = window.location.origin + '/api/chats/view/messages';
+    const DATES_API = window.location.origin + '/api/chats/dates';
     const params = new URLSearchParams(window.location.search);
     let currentOffset = ${messages.length};
     let isLoading = false;
     let hasMore = ${messages.length === limit ? 'true' : 'false'};
     let currentStartDate = params.get('startDate') || '';
     let currentEndDate = params.get('endDate') || '';
+    let startPicker = null;
+    let endPicker = null;
+
+    // 加载可用日期列表并初始化日期选择器
+    async function loadAvailableDates() {
+      try {
+        const dateParams = new URLSearchParams({
+          path: params.get('path'),
+          userMd5: params.get('userMd5'),
+          tableName: params.get('tableName'),
+        });
+        
+        const response = await fetch(\`\${DATES_API}?\${dateParams.toString()}\`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const availableDates = data.data;
+          
+          // 初始化开始日期选择器
+          startPicker = flatpickr('#startDate', {
+            locale: 'zh',
+            dateFormat: 'Y-m-d',
+            enable: availableDates,
+            defaultDate: currentStartDate || null,
+            onChange: function(selectedDates, dateStr) {
+              // 更新结束日期选择器的最小日期
+              if (endPicker && dateStr) {
+                endPicker.set('minDate', dateStr);
+              }
+            }
+          });
+          
+          // 初始化结束日期选择器
+          endPicker = flatpickr('#endDate', {
+            locale: 'zh',
+            dateFormat: 'Y-m-d',
+            enable: availableDates,
+            defaultDate: currentEndDate || null,
+            minDate: currentStartDate || null,
+            onChange: function(selectedDates, dateStr) {
+              // 更新开始日期选择器的最大日期
+              if (startPicker && dateStr) {
+                startPicker.set('maxDate', dateStr);
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('加载日期列表失败:', error);
+      }
+    }
+    
+    // 页面加载时获取日期列表
+    loadAvailableDates();
 
     // 更新筛选信息显示
     function updateFilterInfo() {
@@ -192,8 +250,8 @@ export class WeChatExporter {
 
     // 清除日期筛选
     function clearDateFilter() {
-      document.getElementById('startDate').value = '';
-      document.getElementById('endDate').value = '';
+      if (startPicker) startPicker.clear();
+      if (endPicker) endPicker.clear();
       const newParams = new URLSearchParams(window.location.search);
       newParams.delete('startDate');
       newParams.delete('endDate');
