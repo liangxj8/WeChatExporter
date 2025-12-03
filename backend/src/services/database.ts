@@ -13,6 +13,39 @@ async function getSQL() {
   return SQL;
 }
 
+/**
+ * 转换 Message 字段为字符串
+ * 注意：iOS 备份的特殊消息类型使用 zstd 字典压缩，无法直接解压
+ * 详见: docs/IOS_BACKUP_COMPRESSION.md
+ */
+function decodeMessage(data: any): string {
+  try {
+    // 如果是字符串，直接返回
+    if (typeof data === 'string') {
+      return data;
+    }
+    
+    // 如果是 Uint8Array 或类似对象
+    if (data && typeof data === 'object') {
+      // 转换为 Uint8Array
+      const uint8Array = new Uint8Array(Object.values(data) as number[]);
+      
+      // 检查是否为空
+      if (uint8Array.length === 0) {
+        return '';
+      }
+      
+      // 尝试直接转 UTF-8（适用于文本消息）
+      return Buffer.from(uint8Array).toString('utf-8');
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('转换消息失败:', error);
+    return '';
+  }
+}
+
 export class WeChatDatabase {
   /**
    * 打开联系人数据库
@@ -154,17 +187,9 @@ export class WeChatDatabase {
                 const lastMsg = lastMsgResults[0].values[0];
                 lastMessageTime = lastMsg[0] as number || 0;
                 
-                // 处理可能是 Uint8Array 的 Message 字段
-                let msgContent = '';
-                if (typeof lastMsg[1] === 'string') {
-                  msgContent = lastMsg[1];
-                } else if (lastMsg[1] instanceof Uint8Array) {
-                  msgContent = new TextDecoder('utf-8').decode(lastMsg[1]);
-                } else if (lastMsg[1]) {
-                  msgContent = String(lastMsg[1]);
-                }
-                
+                // 转换 Message 字段
                 const msgType = lastMsg[2] as number || 0;
+                const msgContent = decodeMessage(lastMsg[1]);
                 
                 // 生成消息预览
                 if (msgType === 1) {
@@ -339,16 +364,17 @@ export class WeChatDatabase {
             
             for (const row of results[0].values) {
               const message: any = {};
+              
+              // 先收集所有字段
               columns.forEach((col: string, idx: number) => {
-                let value = row[idx];
-                
-                // 如果是 Message 字段且是 Uint8Array，转换为字符串
-                if (col === 'Message' && value instanceof Uint8Array) {
-                  value = new TextDecoder('utf-8').decode(value);
-                }
-                
-                message[col] = value;
+                message[col] = row[idx];
               });
+              
+              // 转换 Message 字段为字符串
+              if (message.Message) {
+                message.Message = decodeMessage(message.Message);
+              }
+              
               messages.push(message as Message);
             }
           }

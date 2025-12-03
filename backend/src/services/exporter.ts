@@ -327,16 +327,147 @@ export class WeChatExporter {
     
     // 格式化消息内容
     function formatMessageContent(msg) {
+      // 检查是否是二进制数据
+      function isBinaryOrCorrupt(text) {
+        if (!text || text.length === 0) return false;
+        let controlCharCount = 0;
+        for (let i = 0; i < Math.min(text.length, 100); i++) {
+          const code = text.charCodeAt(i);
+          if ((code < 32 && code !== 9 && code !== 10 && code !== 13) || code === 127 || code === 65533) {
+            controlCharCount++;
+          }
+        }
+        return controlCharCount > Math.min(text.length, 100) * 0.2;
+      }
+      
+      // 从 XML 提取标签内容
+      function extractXmlTag(text, tagName) {
+        // CDATA 格式
+        const cdataRegex = new RegExp(\`<\${tagName}(?:\\\\s[^>]*)?><!\\\\[CDATA\\\\[([\\\\s\\\\S]*?)\\\\]\\\\]></\${tagName}>\`, 'i');
+        const cdataMatch = text.match(cdataRegex);
+        if (cdataMatch && cdataMatch[1]) return cdataMatch[1].trim();
+        
+        // 普通格式
+        const simpleRegex = new RegExp(\`<\${tagName}(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)</\${tagName}>\`, 'i');
+        const simpleMatch = text.match(simpleRegex);
+        if (simpleMatch && simpleMatch[1]) return simpleMatch[1].trim();
+        
+        return null;
+      }
+      
       switch (msg.Type) {
-        case 1: return msg.Message || '[文本消息]';
-        case 3: return '[图片]';
-        case 34: return '[语音]';
-        case 43: return '[视频]';
-        case 47: return '[表情]';
-        case 48: return '[位置]';
-        case 49: return '[分享]';
-        case 10000: return msg.Message || '[系统消息]';
-        default: return msg.Message || \`[消息类型: \${msg.Type}]\`;
+        case 1: // 文本消息
+          if (msg.Message && !isBinaryOrCorrupt(msg.Message)) {
+            return msg.Message;
+          }
+          return '[文本消息]';
+        
+        case 3: // 图片
+          return '[图片]';
+        
+        case 34: // 语音
+          if (msg.Message) {
+            // 格式1: voicelength="3000"
+            let lengthMatch = msg.Message.match(/voicelength\\s*=\\s*["']?(\\d+)["']?/i);
+            if (lengthMatch && lengthMatch[1]) {
+              const seconds = Math.ceil(parseInt(lengthMatch[1]) / 1000);
+              return \`[语音 \${seconds}"]\`;
+            }
+            // 格式2: length="3"
+            lengthMatch = msg.Message.match(/length\\s*=\\s*["']?(\\d+)["']?/i);
+            if (lengthMatch && lengthMatch[1]) {
+              const seconds = parseInt(lengthMatch[1]);
+              return \`[语音 \${seconds}"]\`;
+            }
+          }
+          return '[语音]';
+        
+        case 43: // 视频
+          if (msg.Message) {
+            // 格式1: playlength="15"
+            let lengthMatch = msg.Message.match(/playlength\\s*=\\s*["']?(\\d+)["']?/i);
+            if (lengthMatch && lengthMatch[1]) {
+              const seconds = parseInt(lengthMatch[1]);
+              return \`[视频 \${seconds}"]\`;
+            }
+            // 格式2: videolength="15"
+            lengthMatch = msg.Message.match(/videolength\\s*=\\s*["']?(\\d+)["']?/i);
+            if (lengthMatch && lengthMatch[1]) {
+              const seconds = parseInt(lengthMatch[1]);
+              return \`[视频 \${seconds}"]\`;
+            }
+          }
+          return '[视频]';
+        
+        case 47: // 表情
+          if (msg.Message) {
+            if (msg.Message.includes('[') && msg.Message.includes(']')) {
+              const textMatch = msg.Message.match(/\\[([^\\]]+)\\]/);
+              if (textMatch && textMatch[1]) {
+                return \`[表情: \${textMatch[1]}]\`;
+              }
+            }
+          }
+          return '[表情]';
+        
+        case 48: // 位置
+          if (msg.Message) {
+            const locationName = extractXmlTag(msg.Message, 'label');
+            if (locationName && !isBinaryOrCorrupt(locationName)) {
+              return \`[位置] \${locationName}\`;
+            }
+          }
+          return '[位置]';
+        
+        case 49: // 分享
+          if (msg.Message) {
+            let title = extractXmlTag(msg.Message, 'title');
+            
+            // 如果标题是空的，尝试其他字段
+            if (!title || !title.trim()) {
+              title = extractXmlTag(msg.Message, 'des') || extractXmlTag(msg.Message, 'sourcedisplayname');
+            }
+            
+            if (title && !isBinaryOrCorrupt(title)) {
+              title = title.trim();
+              // 限制长度
+              if (title.length > 50) {
+                title = title.substring(0, 50) + '...';
+              }
+              
+              // 判断类型
+              if (msg.Message.includes('weapp') || msg.Message.includes('gh_')) {
+                return \`[小程序] \${title}\`;
+              }
+              if (msg.Message.includes('type="6"') || msg.Message.includes('appmsg_file_type') || msg.Message.includes('<appattach>')) {
+                const fileExt = msg.Message.match(/fileext\\s*=\\s*["']([^"']+)["']/i);
+                if (fileExt && fileExt[1]) {
+                  return \`[文件] \${title}.\${fileExt[1]}\`;
+                }
+                return \`[文件] \${title}\`;
+              }
+              return \`[分享] \${title}\`;
+            }
+          }
+          return '[分享]';
+        
+        case 10000: // 系统消息
+          if (msg.Message && !isBinaryOrCorrupt(msg.Message)) {
+            return msg.Message;
+          }
+          return '[系统消息]';
+        
+        case 10002: // 撤回消息
+          if (msg.Message && !isBinaryOrCorrupt(msg.Message)) {
+            return \`[撤回] \${msg.Message}\`;
+          }
+          return '[撤回了一条消息]';
+        
+        default:
+          if (msg.Message && !isBinaryOrCorrupt(msg.Message)) {
+            return msg.Message;
+          }
+          return \`[消息类型: \${msg.Type}]\`;
       }
     }
     
@@ -441,20 +572,34 @@ export class WeChatExporter {
         return '[图片]';
       
       case 34: // 语音
-        // 尝试提取语音时长
-        if (msg.Message && msg.Message.includes('voicelength')) {
-          const lengthMatch = msg.Message.match(/voicelength="(\d+)"/);
+        // 尝试提取语音时长 - 支持多种格式
+        if (msg.Message) {
+          // 格式1: voicelength="3000"
+          let lengthMatch = msg.Message.match(/voicelength\s*=\s*["']?(\d+)["']?/i);
           if (lengthMatch && lengthMatch[1]) {
             const seconds = Math.ceil(parseInt(lengthMatch[1]) / 1000);
+            return `[语音 ${seconds}"]`;
+          }
+          // 格式2: length="3"
+          lengthMatch = msg.Message.match(/length\s*=\s*["']?(\d+)["']?/i);
+          if (lengthMatch && lengthMatch[1]) {
+            const seconds = parseInt(lengthMatch[1]);
             return `[语音 ${seconds}"]`;
           }
         }
         return '[语音]';
       
       case 43: // 视频
-        // 尝试提取视频时长
-        if (msg.Message && msg.Message.includes('playlength')) {
-          const lengthMatch = msg.Message.match(/playlength="(\d+)"/);
+        // 尝试提取视频时长 - 支持多种格式
+        if (msg.Message) {
+          // 格式1: playlength="15"
+          let lengthMatch = msg.Message.match(/playlength\s*=\s*["']?(\d+)["']?/i);
+          if (lengthMatch && lengthMatch[1]) {
+            const seconds = parseInt(lengthMatch[1]);
+            return `[视频 ${seconds}"]`;
+          }
+          // 格式2: videolength="15"
+          lengthMatch = msg.Message.match(/videolength\s*=\s*["']?(\d+)["']?/i);
           if (lengthMatch && lengthMatch[1]) {
             const seconds = parseInt(lengthMatch[1]);
             return `[视频 ${seconds}"]`;
@@ -493,15 +638,27 @@ export class WeChatExporter {
       case 49: // 分享链接/小程序/文件
         if (msg.Message) {
           // 提取标题
-          const title = extractXmlTag(msg.Message, 'title');
+          let title = extractXmlTag(msg.Message, 'title');
+          
+          // 如果标题是空的或只有空白，尝试其他字段
+          if (!title || !title.trim()) {
+            title = extractXmlTag(msg.Message, 'des') || extractXmlTag(msg.Message, 'sourcedisplayname');
+          }
+          
           if (title && !isBinaryOrCorrupt(title)) {
+            title = title.trim();
+            // 限制长度
+            if (title.length > 50) {
+              title = title.substring(0, 50) + '...';
+            }
+            
             // 判断是否是小程序
-            if (msg.Message.includes('weapp')) {
+            if (msg.Message.includes('weapp') || msg.Message.includes('gh_')) {
               return `[小程序] ${title}`;
             }
             // 判断是否是文件
-            if (msg.Message.includes('type="6"') || msg.Message.includes('appmsg_file_type')) {
-              const fileExt = msg.Message.match(/fileext="([^"]+)"/);
+            if (msg.Message.includes('type="6"') || msg.Message.includes('appmsg_file_type') || msg.Message.includes('<appattach>')) {
+              const fileExt = msg.Message.match(/fileext\s*=\s*["']([^"']+)["']/i);
               if (fileExt && fileExt[1]) {
                 return `[文件] ${title}.${fileExt[1]}`;
               }
