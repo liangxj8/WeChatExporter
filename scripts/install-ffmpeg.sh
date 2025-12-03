@@ -36,9 +36,26 @@ if [ ! -d "${FRAMEWORK_DIR}" ]; then
     exit 1
 fi
 
-VERSION_DIR=$(ls -d ${FRAMEWORK_DIR}/*/ 2>/dev/null | head -1)
+# 查找版本号目录（例如 117.0.5938.63）
+VERSION_DIR=""
+for dir in "${FRAMEWORK_DIR}"/*; do
+    if [ -d "$dir" ] && [[ $(basename "$dir") =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        VERSION_DIR="$dir"
+        break
+    fi
+done
+
+# 如果没找到，尝试使用 Current 符号链接
+if [ -z "${VERSION_DIR}" ] && [ -L "${FRAMEWORK_DIR}/Current" ]; then
+    VERSION_DIR="${FRAMEWORK_DIR}/Current"
+fi
+
 if [ -z "${VERSION_DIR}" ]; then
     echo -e "${RED}错误: 未找到 NW.js 版本目录${NC}"
+    echo "Framework 目录: ${FRAMEWORK_DIR}"
+    echo ""
+    echo "请检查目录内容:"
+    ls -la "${FRAMEWORK_DIR}" 2>/dev/null || echo "无法访问该目录"
     exit 1
 fi
 
