@@ -17,9 +17,11 @@ chmod +x scripts/setup.sh
 
 此脚本将自动完成以下操作：
 - ✓ 检测系统环境（macOS 版本和架构）
-- ✓ 下载 NW.js v0.40.1
+- ✓ 检测并配置 Python（支持 Python 3）
+- ✓ 智能下载 NW.js（Intel: v0.40.1，Apple Silicon: v0.80.0 原生版本）
+- ✓ 自动更新项目配置文件
 - ✓ 安装项目依赖（npm install）
-- ✓ 配置 sqlite3 模块
+- ✓ 针对对应架构编译 sqlite3 模块
 
 #### 2. 运行应用
 
@@ -45,7 +47,9 @@ brew install node
 
 #### 2. 下载 NW.js
 
-从官网下载 NW.js v0.40.1：
+根据你的 Mac 架构下载对应版本：
+
+**Intel Mac (x64):**
 ```bash
 # 下载
 curl -L https://dl.nwjs.io/v0.40.1/nwjs-v0.40.1-osx-x64.zip -o nwjs.zip
@@ -57,9 +61,16 @@ unzip nwjs.zip
 mv nwjs-v0.40.1-osx-x64 nwjs
 ```
 
-或者通过 Homebrew 安装最新版（可能存在兼容性问题）：
+**Apple Silicon (arm64):**
 ```bash
-brew install nwjs
+# 下载
+curl -L https://dl.nwjs.io/v0.80.0/nwjs-v0.80.0-osx-arm64.zip -o nwjs.zip
+
+# 解压
+unzip nwjs.zip
+
+# 移动到项目目录
+mv nwjs-v0.80.0-osx-arm64 nwjs
 ```
 
 #### 3. 安装项目依赖
@@ -183,6 +194,22 @@ ls -la development/node_modules/sqlite3/lib/binding/node-webkit-v0.40.1-darwin-x
 npm install --registry=https://registry.npmmirror.com
 ```
 
+### 3b. Apple Silicon 上 sqlite3 编译失败
+
+确保已安装 Xcode Command Line Tools：
+```bash
+xcode-select --install
+```
+
+如果仍然失败，手动编译（针对 NW.js v0.80.0）：
+```bash
+cd development
+npm install sqlite3@latest --build-from-source \
+  --runtime=node-webkit \
+  --target_arch=arm64 \
+  --target=0.80.0
+```
+
 ### 4. Xcode 相关错误
 
 如果出现以下错误：
@@ -208,8 +235,19 @@ chmod +x scripts/*.sh
 ## 版本兼容性
 
 - **操作系统**: macOS 10.12 或更高版本
-- **Node.js**: v8.11.3 或 v10.16.3（推荐）
-- **NW.js**: v0.40.1（必须）
+- **架构**: Intel (x64) 和 Apple Silicon (arm64) 均原生支持
+- **Node.js**: v8.11.3 或更高版本（推荐 v16+）
+- **Python**: Python 2.7 或 Python 3.x
+- **NW.js**: 
+  - Intel Mac: v0.40.1
+  - Apple Silicon: v0.80.0（原生 arm64）
+
+### Apple Silicon (M1/M2/M3/M4) 原生支持
+
+- ⚡ **完全原生运行**，无需 Rosetta 2
+- ⚡ NW.js v0.80.0 原生 arm64 版本
+- ⚡ sqlite3 编译为 arm64 native 版本
+- ⚡ 性能更优，功耗更低
 
 ## 支持与反馈
 

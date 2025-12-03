@@ -2,6 +2,9 @@
 /nwjs
 nwjs-*.zip
 /development/node_modules
+/development/package-lock.json
+/development/.python-link
+/development/*.bak
 /build
 /webackapp
 /development/output
