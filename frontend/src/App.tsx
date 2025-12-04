@@ -3,7 +3,8 @@ import { Layout, Typography, Steps } from 'antd';
 import ConfigPage from './pages/ConfigPage';
 import UserSelectPage from './pages/UserSelectPage';
 import ChatListPage from './pages/ChatListPage';
-import type { UserInfo } from './types';
+import AnalyticsPage from './pages/AnalyticsPage';
+import type { UserInfo, ChatTable } from './types';
 import './styles/global.css';
 
 const { Header, Content } = Layout;
@@ -13,6 +14,7 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [documentsPath, setDocumentsPath] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserInfo | null>(null);
+  const [selectedChat, setSelectedChat] = useState<ChatTable | null>(null);
 
   const handlePathConfig = (path: string) => {
     setDocumentsPath(path);
@@ -22,6 +24,11 @@ const App: React.FC = () => {
   const handleUserSelect = (user: UserInfo) => {
     setSelectedUser(user);
     setCurrentStep(2);
+  };
+
+  const handleAnalytics = (chat: ChatTable) => {
+    setSelectedChat(chat);
+    setCurrentStep(3);
   };
 
   const steps = [
@@ -34,8 +41,12 @@ const App: React.FC = () => {
       description: '选择要导出的微信账号',
     },
     {
-      title: '导出记录',
-      description: '选择聊天记录并导出',
+      title: '聊天列表',
+      description: '选择聊天记录',
+    },
+    {
+      title: '数据分析',
+      description: '查看统计和 AI 分析',
     },
   ];
 
@@ -63,6 +74,15 @@ const App: React.FC = () => {
               documentsPath={documentsPath}
               user={selectedUser}
               onBack={() => setCurrentStep(1)}
+              onAnalytics={handleAnalytics}
+            />
+          )}
+          {currentStep === 3 && selectedUser && selectedChat && (
+            <AnalyticsPage
+              documentsPath={documentsPath}
+              userMd5={selectedUser.md5}
+              chatInfo={selectedChat}
+              onBack={() => setCurrentStep(2)}
             />
           )}
         </div>

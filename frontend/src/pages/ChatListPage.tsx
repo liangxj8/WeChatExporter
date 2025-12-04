@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, List, Button, Spin, Alert, Tag, Input, message, Space } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DownloadOutlined, ClockCircleOutlined, EyeOutlined, BarChartOutlined } from '@ant-design/icons';
 import { chatAPI } from '../api/client';
 import type { UserInfo, ChatTable } from '../types';
 
@@ -10,9 +10,10 @@ interface ChatListPageProps {
   documentsPath: string;
   user: UserInfo;
   onBack: () => void;
+  onAnalytics?: (chat: ChatTable) => void;
 }
 
-const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack }) => {
+const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack, onAnalytics }) => {
   const [chats, setChats] = useState<ChatTable[]>([]);
   const [filteredChats, setFilteredChats] = useState<ChatTable[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,6 +187,16 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                   >
                     查看
                   </Button>,
+                  onAnalytics && (
+                    <Button
+                      size="small"
+                      icon={<BarChartOutlined />}
+                      onClick={() => onAnalytics(chat)}
+                      type="default"
+                    >
+                      数据分析
+                    </Button>
+                  ),
                   <Button
                     size="small"
                     icon={<DownloadOutlined />}
@@ -194,7 +205,7 @@ const ChatListPage: React.FC<ChatListPageProps> = ({ documentsPath, user, onBack
                   >
                     导出JSON
                   </Button>,
-                ]}
+                ].filter(Boolean)}
               >
                 <List.Item.Meta
                   title={
