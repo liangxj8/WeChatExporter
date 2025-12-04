@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
 from app.config import settings
+from app.routers import users, chats
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -31,6 +32,11 @@ async def log_requests(request, call_next):
     print(f"{datetime.now().isoformat()} {request.method} {request.url.path}")
     response = await call_next(request)
     return response
+
+
+# 注册路由
+app.include_router(users.router, prefix="/api/users", tags=["用户"])
+app.include_router(chats.router, prefix="/api/chats", tags=["聊天记录"])
 
 
 # 健康检查
