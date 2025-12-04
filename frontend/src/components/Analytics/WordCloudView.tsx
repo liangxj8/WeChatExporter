@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Spin, message, Form, InputNumber, Select, DatePicker, Space, Image } from 'antd';
+import { Card, Button, Spin, message, Form, InputNumber, Select, DatePicker, Space } from 'antd';
 import { CloudOutlined, ReloadOutlined } from '@ant-design/icons';
 import { analyticsAPI } from '../../api/client';
 
@@ -135,10 +135,10 @@ const WordCloudView: React.FC<WordCloudViewProps> = ({
       {!loading && imageData && (
         <Card title="词云图">
           <div style={{ textAlign: 'center' }}>
-            <Image
+            <img
               src={`data:image/png;base64,${imageData}`}
               alt="词云"
-              style={{ maxWidth: '100%' }}
+              style={{ maxWidth: '100%', height: 'auto' }}
             />
           </div>
         </Card>
