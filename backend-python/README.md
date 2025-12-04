@@ -31,26 +31,39 @@
 - 💭 情感分析：分析聊天情绪
 - 💬 智能问答：基于聊天记录回答问题
 
-## 安装
+## 快速开始
 
-### 1. 创建虚拟环境
+### 一键安装
 
 ```bash
 cd backend-python
+./setup.sh
+```
+
+安装脚本会自动：
+- 检查 Python 版本
+- 创建虚拟环境
+- 安装所有依赖
+- 创建 .env 配置文件
+
+### 手动安装
+
+如果需要手动安装，按以下步骤操作：
+
+1. **创建虚拟环境**
+```bash
 python3 -m venv venv
 source venv/bin/activate  # macOS/Linux
 # 或
 venv\Scripts\activate  # Windows
 ```
 
-### 2. 安装依赖
-
+2. **安装依赖**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. 配置环境变量
-
+3. **配置环境变量**
 ```bash
 cp .env.example .env
 # 编辑 .env 文件，配置 OpenAI API Key 等
@@ -58,9 +71,16 @@ cp .env.example .env
 
 ## 运行
 
+### 快速启动
+
+```bash
+./run.sh
+```
+
 ### 开发模式
 
 ```bash
+source venv/bin/activate
 python -m app.main
 # 或
 uvicorn app.main:app --reload --port 3000
@@ -69,6 +89,7 @@ uvicorn app.main:app --reload --port 3000
 ### 生产模式
 
 ```bash
+source venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 4
 ```
 
@@ -100,11 +121,39 @@ backend-python/
 ## 开发进度
 
 - [x] 项目初始化
-- [ ] 基础功能迁移
-- [ ] 数据分析功能
-- [ ] 词云生成
-- [ ] 大模型接入
+- [x] 基础功能迁移（用户、聊天记录、消息查询）
+- [x] HTML 渲染服务
+- [x] 数据分析功能（统计、活跃度、词频）
+- [x] 词云生成
+- [x] 大模型接入（总结、情感分析、问答）
 - [ ] 前端集成
+- [ ] 新功能 UI 界面
+
+## API 端点
+
+### 用户管理
+- `GET /api/users` - 获取用户列表
+- `GET /api/users/{md5}` - 获取用户详情
+
+### 聊天记录
+- `GET /api/chats` - 获取聊天列表
+- `GET /api/chats/messages` - 获取消息列表
+- `GET /api/chats/dates` - 获取日期列表
+- `GET /api/chats/view` - 在线查看 HTML 聊天记录
+- `GET /api/chats/view/messages` - 无限滚动消息加载
+
+### 数据分析（新功能）
+- `GET /api/analytics/statistics` - 获取统计数据
+- `GET /api/analytics/activity` - 获取活跃度分析
+- `GET /api/analytics/wordfreq` - 获取词频统计
+- `GET /api/analytics/wordcloud` - 生成词云图片
+
+### AI 功能（新功能）
+- `POST /api/ai/summarize` - 总结聊天内容
+- `POST /api/ai/sentiment` - 情感分析
+- `POST /api/ai/qa` - 智能问答
+
+完整 API 文档：http://localhost:3000/docs
 
 ## License
 
