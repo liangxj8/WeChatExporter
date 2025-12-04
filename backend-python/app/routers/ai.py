@@ -7,7 +7,10 @@ from app.models import ApiResponse
 from app.services.llm_service import LLMService
 
 router = APIRouter()
-llm = LLMService()
+
+def get_llm_service():
+    """获取 LLM 服务实例（延迟初始化）"""
+    return LLMService()
 
 
 class QARequest(BaseModel):
@@ -47,6 +50,7 @@ async def summarize(
         {'summary': '总结内容', 'topics': ['话题1', '话题2']}
     """
     try:
+        llm = get_llm_service()
         result = llm.summarize_chat(
             path, userMd5, tableName, limit, startDate, endDate
         )
@@ -88,6 +92,7 @@ async def sentiment(
         {'sentiment': 'positive/neutral/negative', 'score': 0.8, 'description': '描述'}
     """
     try:
+        llm = get_llm_service()
         result = llm.sentiment_analysis(
             path, userMd5, tableName, limit, startDate, endDate
         )
@@ -116,6 +121,7 @@ async def qa(request: QARequest):
         回答内容
     """
     try:
+        llm = get_llm_service()
         answer = llm.qa_chat_history(
             request.path,
             request.userMd5,
