@@ -27,8 +27,10 @@ const UserSelectPage: React.FC<UserSelectPageProps> = ({ documentsPath, onSelect
     try {
       const response = await userAPI.getUsers(documentsPath);
       if (response.success && response.data) {
-        setUsers(response.data);
-        if (response.data.length === 0) {
+        // Python 后端返回的是对象，需要转换为数组
+        const userArray = Object.values(response.data);
+        setUsers(userArray);
+        if (userArray.length === 0) {
           setError('未找到任何微信账号，请检查目录路径是否正确');
         }
       } else {
