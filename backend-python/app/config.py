@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     
     # 词云配置
-    wordcloud_font_path: str = "/System/Library/Fonts/PingFang.ttc"
+    wordcloud_font_path: str = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
     wordcloud_width: int = 800
     wordcloud_height: int = 600
     

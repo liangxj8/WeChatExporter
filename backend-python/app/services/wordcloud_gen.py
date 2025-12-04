@@ -65,8 +65,28 @@ class WeChatWordCloud:
         
         # 创建词云对象
         try:
+            import os
+            # 检查字体文件是否存在
+            font_path = settings.wordcloud_font_path
+            if not os.path.exists(font_path):
+                print(f'警告: 字体文件不存在 {font_path}，尝试使用备用字体')
+                # 尝试常见的中文字体路径
+                fallback_fonts = [
+                    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+                    '/System/Library/Fonts/STHeiti Medium.ttc',
+                    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+                    None  # 使用默认字体
+                ]
+                font_path = None
+                for f in fallback_fonts:
+                    if f is None or os.path.exists(f):
+                        font_path = f
+                        if f:
+                            print(f'使用字体: {f}')
+                        break
+            
             wc = WordCloud(
-                font_path=settings.wordcloud_font_path,
+                font_path=font_path,
                 width=width,
                 height=height,
                 background_color=background_color,
@@ -86,6 +106,8 @@ class WeChatWordCloud:
             return self._image_to_base64(image)
         except Exception as e:
             print(f'生成词云失败: {e}')
+            import traceback
+            traceback.print_exc()
             # 返回错误提示图片
             return self._generate_error_image(width, height, str(e))
     
@@ -99,15 +121,26 @@ class WeChatWordCloud:
     def _generate_empty_image(self, width: int, height: int) -> str:
         """生成空白提示图片"""
         from PIL import ImageDraw, ImageFont
+        import os
         
         image = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(image)
         
         text = '暂无数据'
         # 尝试使用中文字体，如果失败则使用默认字体
+        font = None
         try:
-            font = ImageFont.truetype(settings.wordcloud_font_path, 40)
+            if os.path.exists(settings.wordcloud_font_path):
+                font = ImageFont.truetype(settings.wordcloud_font_path, 40)
+            else:
+                # 尝试 Arial Unicode
+                arial_path = '/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
+                if os.path.exists(arial_path):
+                    font = ImageFont.truetype(arial_path, 40)
         except:
+            pass
+        
+        if font is None:
             font = ImageFont.load_default()
         
         # 获取文本大小
@@ -125,14 +158,24 @@ class WeChatWordCloud:
     def _generate_error_image(self, width: int, height: int, error: str) -> str:
         """生成错误提示图片"""
         from PIL import ImageDraw, ImageFont
+        import os
         
         image = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(image)
         
         text = f'生成失败: {error[:30]}'
+        font = None
         try:
-            font = ImageFont.truetype(settings.wordcloud_font_path, 30)
+            if os.path.exists(settings.wordcloud_font_path):
+                font = ImageFont.truetype(settings.wordcloud_font_path, 30)
+            else:
+                arial_path = '/System/Library/Fonts/Supplemental/Arial Unicode.ttf'
+                if os.path.exists(arial_path):
+                    font = ImageFont.truetype(arial_path, 30)
         except:
+            pass
+        
+        if font is None:
             font = ImageFont.load_default()
         
         bbox = draw.textbbox((0, 0), text, font=font)
