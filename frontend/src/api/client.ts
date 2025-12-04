@@ -146,8 +146,8 @@ export const analyticsAPI = {
   ) => {
     const response = await client.get<ApiResponse<WordCloudImage>>('/analytics/wordcloud', {
       params: { 
-        path: documentsPath, 
-        userMd5, 
+        path: documentsPath,
+        userMd5,
         tableName, 
         width, 
         height, 

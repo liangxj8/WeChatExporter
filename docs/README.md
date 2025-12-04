@@ -1,92 +1,101 @@
-# WeChatExporter 文档目录
+# WeChatExporter 2.0 文档
 
-本目录包含 WeChatExporter 的详细技术文档和使用指南。
+欢迎来到 WeChatExporter 2.0 的文档中心！
 
-## 📚 文档列表
+## 📚 文档索引
 
-### 安装和配置
-
-- **[INSTALL.md](INSTALL.md)** - 完整安装指南 ⭐ 推荐首次使用
-  - 环境要求和准备工作
-  - 详细的安装步骤
-  - 数据导出方法
+### 🚀 快速开始
+- **[QUICKSTART.md](QUICKSTART.md)** - 快速开始指南
+  - 一键安装和启动
+  - 使用流程说明
+  - 功能介绍
   - 常见问题解答
 
-- **[APPLE_SILICON_UPGRADE.md](APPLE_SILICON_UPGRADE.md)** - Apple Silicon 支持说明
-  - M系列芯片原生支持
-  - 性能对比和优势
-  - 升级指南
+### 💻 开发文档
+- **[DEVELOPMENT_SUMMARY.md](DEVELOPMENT_SUMMARY.md)** - Python 后端重写开发总结
+  - 技术栈介绍
+  - 完整功能列表
+  - 代码迁移对照
+  - Bug 修复记录
+  - 项目结构说明
 
-### 使用指南
+### 📱 iOS 备份说明
+- **[IOS_BACKUP_LIMITATIONS.md](IOS_BACKUP_LIMITATIONS.md)** - iOS 备份的限制和注意事项
+  - 如何创建 iTunes/iCloud 备份
+  - 找到微信数据路径
+  - 备份相关问题解决
 
-- **[NEXT_STEPS.md](NEXT_STEPS.md)** - 后续步骤和使用指南
-  - 完整的测试和使用流程
-  - 常见问题解决方案
-  - 验证点和排查方法
+## 📖 其他资源
 
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - 故障排查指南
-  - 界面不显示问题
-  - 数据库连接问题
-  - 依赖库问题
-  - 详细的排查步骤
+### 项目文档
+- [根目录 README.md](../README.md) - 项目总览和功能介绍
+- [backend/README.md](../backend/README.md) - Python 后端 API 详细文档
+- [scripts/README.md](../scripts/README.md) - 脚本工具说明
 
-### 技术文档
+### 在线资源
+- **API 文档**: http://localhost:3000/docs（启动后端后访问）
+- **项目主页**: https://github.com/yourusername/WeChatExporter
+- **问题反馈**: https://github.com/yourusername/WeChatExporter/issues
 
-- **[WECHAT_DB_CHANGES.md](WECHAT_DB_CHANGES.md)** - 新版微信数据库结构变化
-  - 配置文件变化说明
-  - 数据库结构对比
-  - 适配方案详解
+## 🎯 文档导航
 
-- **[MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md)** - 新版微信数据解析功能修复总结
-  - 修复概述
-  - 主要修改详解
-  - 测试结果和兼容性说明
+### 我是新用户
+1. 阅读 [QUICKSTART.md](QUICKSTART.md) 了解如何安装和使用
+2. 如果遇到 iOS 备份问题，查看 [IOS_BACKUP_LIMITATIONS.md](IOS_BACKUP_LIMITATIONS.md)
+3. 访问 http://localhost:3000/docs 查看 API 文档
 
-## 🔗 其他相关文档
+### 我是开发者
+1. 阅读 [DEVELOPMENT_SUMMARY.md](DEVELOPMENT_SUMMARY.md) 了解技术架构
+2. 查看 [backend/README.md](../backend/README.md) 了解后端 API
+3. 参考 [scripts/README.md](../scripts/README.md) 了解开发工具
 
-项目根目录：
+### 我想贡献代码
+1. Fork 项目仓库
+2. 阅读 [DEVELOPMENT_SUMMARY.md](DEVELOPMENT_SUMMARY.md) 了解项目结构
+3. 提交 Pull Request
 
-- **[../README.md](../README.md)** - 项目概述和快速开始
+## 📝 版本历史
 
-## 📖 阅读顺序建议
+### v2.0.0 (2025-12-04) - Python 重写版本
+- ✅ 后端从 Node.js 完全重写为 Python + FastAPI
+- ✅ 新增数据分析功能（统计、词云、活跃度）
+- ✅ 新增 AI 功能（总结、情感分析、问答）
+- ✅ 前端适配新 API，新增数据分析界面
+- ✅ 更简单的安装和使用流程
+- ✅ 自动生成的 API 文档
 
-### 新用户
-1. 先阅读 [INSTALL.md](INSTALL.md) 了解如何安装 ⭐
-2. 然后阅读 [NEXT_STEPS.md](NEXT_STEPS.md) 学习如何使用
-3. 遇到问题查看 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+### v1.0 - Node.js 版本（已弃用）
+- 基于 NW.js 的桌面应用
+- Node.js + TypeScript 后端
+- 基础聊天记录查看和导出
 
-### 使用 Apple Silicon (M系列) Mac
-1. 阅读 [APPLE_SILICON_UPGRADE.md](APPLE_SILICON_UPGRADE.md) 了解原生支持
-2. 按照 [INSTALL.md](INSTALL.md) 进行安装
-3. 参考 [NEXT_STEPS.md](NEXT_STEPS.md) 开始使用
+## 🔗 快速链接
 
-### 开发者
-1. 阅读 [WECHAT_DB_CHANGES.md](WECHAT_DB_CHANGES.md) 了解数据结构变化
-2. 阅读 [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md) 了解技术实现
-3. 参考 [NEXT_STEPS.md](NEXT_STEPS.md) 了解后续优化方向
+| 类型 | 链接 |
+|------|------|
+| 快速开始 | [QUICKSTART.md](QUICKSTART.md) |
+| 开发总结 | [DEVELOPMENT_SUMMARY.md](DEVELOPMENT_SUMMARY.md) |
+| iOS 备份 | [IOS_BACKUP_LIMITATIONS.md](IOS_BACKUP_LIMITATIONS.md) |
+| 项目首页 | [../README.md](../README.md) |
+| API 文档 | http://localhost:3000/docs |
+| 后端文档 | [../backend/README.md](../backend/README.md) |
 
-### 故障排查
-1. 查看 [NEXT_STEPS.md](NEXT_STEPS.md) 的"可能遇到的问题"部分
-2. 参考 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 的详细排查步骤
-3. 检查 [WECHAT_DB_CHANGES.md](WECHAT_DB_CHANGES.md) 确认数据兼容性
+## 💡 提示
 
-## 🎯 快速链接
+- 使用 `./scripts/setup.sh` 一键安装所有依赖
+- 使用 `./scripts/dev.sh` 一键启动前后端
+- 访问 http://localhost:3000/docs 查看交互式 API 文档
+- 所有功能都可以在 Web 界面中操作，无需命令行
 
-- **安装指南**：[INSTALL.md](INSTALL.md) ⭐
-- **使用指南**：[NEXT_STEPS.md](NEXT_STEPS.md)
-- **故障排查**：[TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **Apple Silicon 支持**：[APPLE_SILICON_UPGRADE.md](APPLE_SILICON_UPGRADE.md)
-- **新版微信支持**：[WECHAT_DB_CHANGES.md](WECHAT_DB_CHANGES.md)
-- **技术实现**：[MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md)
+## 🐛 问题反馈
 
-## 📝 更新日志
-
-- **2024-12-03**：创建文档目录，整理新版微信适配相关文档
-  - 添加数据库结构变化说明
-  - 添加技术实现总结
-  - 添加使用指南和后续步骤
+如果遇到问题：
+1. 查看 [QUICKSTART.md](QUICKSTART.md) 的常见问题部分
+2. 查看 GitHub Issues 是否有相同问题
+3. 提交新的 Issue 并附上详细信息
 
 ---
 
-如有任何问题或建议，欢迎提交 Issue 或 Pull Request。
-
+**最后更新**: 2025-12-04  
+**版本**: 2.0.0  
+**技术栈**: Python + FastAPI + React + TypeScript

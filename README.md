@@ -1,210 +1,226 @@
 # WeChatExporter 2.0
 
-> 全新现代化版本！完全重构，使用 React + TypeScript + Express + sql.js
+> 微信聊天记录导出工具 - 全新 Python 后端版本！
 
-## 简介
+<div align="center">
 
-WeChatExporter 2.0 是一个用于导出和查看微信聊天记录的工具。通过 iTunes 或 iCloud 备份提取的微信数据，可以方便地查看和导出聊天记录。
+**功能强大 · 数据分析 · AI 加持 · 现代化架构**
 
-## ✨ 新版特性
+</div>
 
-### 技术栈升级
-- ✅ **前后端分离**：React 18 + TypeScript + Vite + Ant Design 5
-- ✅ **现代化后端**：Node.js + Express + TypeScript  
-- ✅ **纯 JS 数据库**：sql.js (无需编译 native binding)
-- ✅ **类型安全**：全面的 TypeScript 类型定义
-- ✅ **开发体验**：Vite 热重载，ts-node-dev 自动重启
+## ✨ 特性
 
-### 功能改进
-- 🚀 **更快的启动速度**：纯 JavaScript 实现，无编译等待
-- 💎 **更美观的 UI**：Ant Design 5 组件库
-- 🔍 **实时搜索**：快速过滤聊天记录
-- 📤 **多格式导出**：支持 HTML 和 JSON 格式
-- 🎯 **更准确的解析**：改进的用户信息和消息解析逻辑
+### 🎯 核心功能
+- ✅ **用户管理** - 自动识别和解析微信账号
+- ✅ **聊天列表** - 按时间排序，支持搜索
+- ✅ **消息查看** - 在线查看聊天记录，无限滚动
+- ✅ **日期筛选** - 按日期范围查看历史消息
 
-### 架构优势
-- 📦 **模块化设计**：清晰的前后端分离架构
-- 🔧 **易于维护**：代码量减少 40-50%
-- 🧪 **易于测试**：RESTful API，便于单元测试
-- 🌐 **跨平台**：任何浏览器都能访问
+### 📊 数据分析（新增）
+- ✅ **聊天统计** - 消息数量、类型分布、时间趋势
+- ✅ **活跃度分析** - 用户发言排名、活跃时段
+- ✅ **词频统计** - 中文分词、高频词汇
+- ✅ **词云生成** - 可视化聊天内容
 
-## 快速开始
+### 🤖 AI 功能（新增）
+- ✅ **内容总结** - 提取关键话题和摘要
+- ✅ **情感分析** - 分析聊天情绪倾向
+- ✅ **智能问答** - 基于聊天记录回答问题
+
+### 🏗️ 技术栈
+- **后端**: Python 3.9+ + FastAPI + sqlite3
+- **前端**: React 18 + TypeScript + Vite + Ant Design 5
+- **数据分析**: pandas + jieba + wordcloud + Chart.js
+- **AI**: OpenAI API + langchain
+
+## 🚀 快速开始
 
 ### 前置要求
 
-- Node.js 18+ 
-- npm 或 yarn
-- 微信备份数据（iTunes 或 iCloud 备份的 Documents 目录）
+- **Python 3.9+**
+- **Node.js 16+**
+- **微信备份数据**（iTunes 或 iCloud 备份的 Documents 目录）
 
-### 一键启动
+### 一键安装和启动
 
 ```bash
-# 克隆仓库
+# 1. 克隆仓库
 git clone https://github.com/yourusername/WeChatExporter.git
 cd WeChatExporter
 
-# 一键启动开发模式（自动安装依赖并启动前后端）
+# 2. 一键安装所有依赖
+./scripts/setup.sh
+
+# 3. 一键启动开发模式（前后端同时启动）
 ./scripts/dev.sh
 ```
 
-启动后：
-- 后端API: http://localhost:3000
-- 前端界面: http://localhost:5173 (会自动打开)
-
-### 分步启动
-
-如果需要分别启动前后端：
+### 手动启动
 
 ```bash
 # 启动后端
 cd backend
-npm install
-npm run dev
+./run.sh
 
 # 启动前端（新终端）
 cd frontend
-npm install
 npm run dev
 ```
 
-## 使用步骤
+### 访问应用
 
-1. **配置路径**
-   - 输入微信备份数据的 Documents 目录路径
-   - 例如：`/Users/你的用户名/Downloads/Documents`
+- **前端界面**: http://localhost:5173
+- **后端 API**: http://localhost:3000
+- **API 文档**: http://localhost:3000/docs（Swagger UI）
 
-2. **选择用户**
-   - 从检测到的微信账号中选择一个
+## 📖 使用指南
 
-3. **导出记录**
-   - 浏览该用户的所有聊天记录
-   - 使用搜索功能快速定位
-   - 点击导出按钮，选择 HTML 或 JSON 格式
+### 1. 准备微信数据
 
-## 项目结构
+需要通过 iTunes 或 iCloud 备份获取微信数据：
+
+**iTunes 备份路径**:
+- macOS: `~/Library/Application Support/MobileSync/Backup/{UDID}/AppDomain-com.tencent.xin/Documents`
+- Windows: `%APPDATA%\Apple Computer\MobileSync\Backup\{UDID}\AppDomain-com.tencent.xin\Documents`
+
+### 2. 配置路径
+
+在 Web 界面中输入微信 Documents 目录的完整路径。
+
+### 3. 选择账号
+
+系统会自动扫描并显示所有微信账号，选择要查看的账号。
+
+### 4. 查看聊天记录
+
+- **查看消息**: 点击"查看"按钮在新窗口查看聊天记录
+- **数据分析**: 点击"数据分析"按钮查看统计、词云、AI 分析
+
+### 5. AI 功能配置（可选）
+
+如需使用 AI 功能，需要配置 OpenAI API Key：
+
+```bash
+cd backend
+cp .env.example .env
+# 编辑 .env，设置 OPENAI_API_KEY=your-key-here
+```
+
+## 📁 项目结构
 
 ```
 WeChatExporter/
-├── backend/                    # 后端服务
+├── backend/                    # Python 后端（FastAPI）
+│   ├── app/
+│   │   ├── models/            # Pydantic 数据模型
+│   │   ├── routers/           # API 路由
+│   │   ├── services/          # 业务逻辑
+│   │   ├── utils/             # 工具函数
+│   │   ├── config.py          # 配置管理
+│   │   └── main.py            # 应用入口
+│   ├── requirements.txt       # Python 依赖
+│   ├── setup.sh              # 安装脚本
+│   └── run.sh                # 启动脚本
+├── frontend/                  # React 前端
 │   ├── src/
-│   │   ├── server.ts          # Express 服务器
-│   │   ├── routes/            # API 路由
-│   │   ├── services/          # 业务逻辑（数据库、解析、导出）
-│   │   ├── types/             # TypeScript 类型
-│   │   └── utils/             # 工具函数
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/                   # 前端应用
-│   ├── src/
-│   │   ├── api/               # API 调用
-│   │   ├── components/        # React 组件
-│   │   ├── pages/             # 页面
-│   │   ├── types/             # TypeScript 类型
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── index.html
-├── scripts/                    # 脚本
-│   └── dev.sh                 # 开发模式启动
-├── docs/                       # 文档
-│   └── MODERNIZATION_PLAN.md  # 现代化重构计划
-└── development/                # 旧代码（仅供参考）
+│   │   ├── api/              # API 客户端
+│   │   ├── components/       # React 组件
+│   │   ├── pages/            # 页面组件
+│   │   └── types/            # TypeScript 类型
+│   └── package.json
+├── scripts/                   # 脚本工具
+│   ├── setup.sh              # 一键安装
+│   └── dev.sh                # 一键启动
+├── backend-nodejs-old/        # 旧 Node.js 后端（已弃用）
+└── docs/                      # 文档
+
 ```
 
-## API 文档
+## 📚 文档
 
-### 用户相关
+- [快速开始指南](docs/QUICKSTART.md) - 详细的安装和使用步骤
+- [开发总结](docs/DEVELOPMENT_SUMMARY.md) - Python 后端重写技术细节
+- [iOS 备份说明](docs/IOS_BACKUP_LIMITATIONS.md) - 备份相关问题和解决方案
+- [后端 API 文档](backend/README.md) - Python 后端详细文档
+- [脚本工具文档](scripts/README.md) - 启动和安装脚本说明
 
-- `GET /api/users?path=...` - 获取所有微信用户
-- `GET /api/users/:md5?path=...` - 获取单个用户详情
+## 🎯 功能对比
 
-### 聊天相关
+| 功能 | v1.0 (NW.js) | v2.0 (Web) |
+|------|--------------|-----------|
+| 基础聊天记录查看 | ✅ | ✅ |
+| 用户信息解析 | ✅ | ✅ |
+| HTML 导出 | ✅ | ✅ |
+| 数据统计 | ❌ | ✅ |
+| 词云生成 | ❌ | ✅ |
+| 活跃度分析 | ❌ | ✅ |
+| AI 内容总结 | ❌ | ✅ |
+| 情感分析 | ❌ | ✅ |
+| 智能问答 | ❌ | ✅ |
+| 跨平台 | 部分 | 完全 |
+| 安装简便性 | 复杂 | 简单 |
 
-- `GET /api/chats?path=...&userMd5=...&limit=0` - 获取聊天列表
-- `GET /api/chats/messages?path=...&userMd5=...&table=...` - 获取消息列表
-- `POST /api/chats/export` - 导出聊天记录
-
-详细 API 文档访问：http://localhost:3000
-
-## 技术细节
-
-### 为什么使用 sql.js 而不是 better-sqlite3？
-
-1. **无需编译**：sql.js 是纯 JavaScript 实现，无需 native binding
-2. **更好的兼容性**：避免 Node.js 版本和系统架构的编译问题
-3. **开发体验**：安装依赖更快，无需 Xcode 等编译工具
-4. **性能足够**：对于查看聊天记录的场景，性能完全满足需求
-
-### 核心算法
-
-1. **用户信息解析**：从 `LoginInfo2.dat` 二进制文件中提取微信号和昵称
-2. **聊天表查找**：遍历 `message_1.sqlite` 到 `message_4.sqlite` 查找所有聊天表
-3. **联系人匹配**：从 `WCDB_Contact.sqlite` 读取联系人信息并匹配
-
-## 常见问题
-
-### Q: 找不到微信备份数据？
-
-A: 需要先通过 iTunes 或 iCloud 备份你的 iPhone，然后找到备份中的 Documents 目录。通常位于：
-- macOS: `~/Library/Application Support/MobileSync/Backup/[设备ID]/`
-- Windows: `%APPDATA%\Apple Computer\MobileSync\Backup\[设备ID]\`
-
-### Q: 显示"未找到任何微信账号"？
-
-A: 请确保：
-1. 路径指向正确的 Documents 目录
-2. 该目录下包含 32 位 MD5 格式的用户目录（如 `a1b2c3d4e5f6...`）
-3. 用户目录下有 `DB` 子目录和相关数据库文件
-
-### Q: 可以导出图片和语音吗？
-
-A: 当前版本主要支持文本消息的导出。图片、语音等多媒体文件需要额外处理，未来版本会支持。
-
-## 开发
+## 🔧 开发
 
 ### 后端开发
 
 ```bash
 cd backend
-npm run dev  # 启动开发服务器（自动重启）
-npm run build  # 编译 TypeScript
-npm start  # 运行编译后的代码
+source venv/bin/activate
+uvicorn app.main:app --reload --port 3000
 ```
 
 ### 前端开发
 
 ```bash
 cd frontend
-npm run dev  # 启动 Vite 开发服务器
-npm run build  # 构建生产版本
-npm run preview  # 预览生产构建
+npm run dev
 ```
 
-## 许可证
+### 构建生产版本
 
-Apache License 2.0
+```bash
+# 前端
+cd frontend
+npm run build
 
-## 致谢
+# 后端直接运行（无需构建）
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 4
+```
 
-- 原版 WeChatExporter 项目
-- sql.js 项目
-- 所有使用的开源库的贡献者
+## 🐛 故障排查
 
-## 更新日志
+### 后端无法启动
+- 检查 Python 版本 >= 3.9
+- 运行 `./setup.sh` 安装依赖
+- 查看错误日志
 
-### 2.0.0 (2025-12-03)
+### 前端无法连接后端
+- 确保后端已启动（http://localhost:3000/health）
+- 检查浏览器控制台错误
 
-- 🎉 完全重构为现代化 Web 应用
-- ✨ React 18 + TypeScript + Vite 前端
-- ✨ Node.js + Express + TypeScript 后端
-- ✨ sql.js 替代 better-sqlite3，无需编译
-- ✨ Ant Design 5 UI 组件库
-- ✨ 前后端分离架构
-- ✨ RESTful API 设计
-- 🐛 修复了大量旧版本的 bug
-- 📝 完善的文档和类型定义
+### 词云生成失败
+- 检查是否有文本消息
+- 确保字体文件存在（自动使用系统字体）
+
+### AI 功能报错
+- 需要配置 `OPENAI_API_KEY`
+- 可以不使用 AI 功能，基础功能和数据分析仍可正常使用
+
+## 📜 License
+
+MIT License
+
+## 🙏 致谢
+
+- 原项目灵感来源于微信聊天记录导出需求
+- 感谢开源社区提供的优秀工具和库
 
 ---
 
-如果这个项目对你有帮助，欢迎 Star ⭐️
+**版本**: 2.0.0  
+**最后更新**: 2025-12-04  
+**后端**: Python + FastAPI  
+**前端**: React + TypeScript

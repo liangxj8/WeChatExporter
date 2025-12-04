@@ -2,6 +2,17 @@
 node_modules/
 package-lock.json
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+
 # Build output
 dist/
 build/
@@ -26,11 +37,6 @@ Thumbs.db
 *.bak
 *.tmp
 
-# NW.js
-nwjs-*/
-nwjs-v*/
-nwjs/
-
 # Logs
 logs/
 *.log
@@ -48,9 +54,12 @@ tmp/
 *.cache
 
 # Project specific
-development/node_modules/
-development/dist/
-backend/node_modules/
-backend/dist/
 frontend/node_modules/
 frontend/dist/
+backend/venv/
+backend/__pycache__/
+
+# Old archived directories (if restored)
+backend-nodejs-old/
+development/
+nwjs/
