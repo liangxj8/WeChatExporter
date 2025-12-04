@@ -4,9 +4,11 @@ from typing import List, Dict, Any, Optional
 
 from app.models import ApiResponse
 from app.services.analytics import WeChatAnalytics
+from app.services.wordcloud_gen import WeChatWordCloud
 
 router = APIRouter()
 analytics = WeChatAnalytics()
+wordcloud_gen = WeChatWordCloud()
 
 
 @router.get("/statistics", response_model=ApiResponse[Dict[str, Any]])
@@ -123,5 +125,53 @@ async def get_word_frequency(
         return ApiResponse(success=True, data=word_freq)
     except Exception as e:
         print(f'获取词频数据失败: {e}')
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/wordcloud", response_model=ApiResponse[Dict[str, str]])
+async def generate_wordcloud(
+    path: str = Query(..., description="微信数据目录路径"),
+    userMd5: str = Query(..., alias="userMd5", description="用户 MD5"),
+    tableName: str = Query(..., alias="tableName", description="表名"),
+    width: int = Query(800, description="图片宽度"),
+    height: int = Query(600, description="图片高度"),
+    backgroundColor: str = Query("white", alias="backgroundColor", description="背景颜色"),
+    colormap: str = Query("viridis", description="颜色方案"),
+    maxWords: int = Query(200, alias="maxWords", description="最大词数"),
+    startDate: Optional[str] = Query(None, alias="startDate", description="开始日期（YYYY-MM-DD）"),
+    endDate: Optional[str] = Query(None, alias="endDate", description="结束日期（YYYY-MM-DD）")
+):
+    """
+    生成词云图片
+    
+    返回 base64 编码的 PNG 图片，可直接用于前端显示
+    
+    Args:
+        path: 微信数据目录路径
+        userMd5: 用户 MD5
+        tableName: 表名
+        width: 图片宽度
+        height: 图片高度
+        backgroundColor: 背景颜色
+        colormap: 颜色方案（viridis, plasma, inferno, magma, cividis 等）
+        maxWords: 最大词数
+        startDate: 开始日期
+        endDate: 结束日期
+        
+    Returns:
+        {'image': 'base64编码的图片'}
+    """
+    try:
+        image_base64 = wordcloud_gen.generate_wordcloud(
+            path, userMd5, tableName,
+            width, height, backgroundColor, colormap, maxWords,
+            startDate, endDate
+        )
+        
+        print(f'✅ 生成词云图片成功')
+        
+        return ApiResponse(success=True, data={'image': image_base64})
+    except Exception as e:
+        print(f'生成词云失败: {e}')
         raise HTTPException(status_code=500, detail=str(e))
 
