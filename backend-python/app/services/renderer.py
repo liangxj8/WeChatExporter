@@ -202,7 +202,7 @@ class WeChatRenderer:
     }};
     let currentOffset = {messages_count};
     let isLoading = false;
-    let hasMore = {str(messages_count === limit).lower()};
+    let hasMore = {str(messages_count == limit).lower()};
     let currentStartDate = {start_date_str};
     let currentEndDate = {end_date_str};
     let startPicker = null;
