@@ -46,7 +46,7 @@ class WeChatRenderer:
         )
         
         # 如果是群聊，加载联系人信息用于解析昵称
-        contacts_map: Dict[str, Contact] | None = None
+        contacts_map: Optional[Dict[str, Contact]] = None
         if chat_info.contact.is_group:
             contacts_map = self.db.get_contacts(documents_path, user_md5)
         
@@ -118,7 +118,7 @@ class WeChatRenderer:
     def _build_messages_html(
         self,
         messages: List[Dict[str, Any]],
-        contacts_map: Dict[str, Contact] | None,
+        contacts_map: Optional[Dict[str, Contact]],
         is_group: bool
     ) -> str:
         """构建消息列表 HTML"""

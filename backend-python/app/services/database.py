@@ -38,7 +38,7 @@ def decode_message(data: Any) -> str:
 class WeChatDatabase:
     """微信数据库操作"""
     
-    def open_contact_db(self, documents_path: str, user_md5: str) -> sqlite3.Connection | None:
+    def open_contact_db(self, documents_path: str, user_md5: str) -> Optional[sqlite3.Connection]:
         """
         打开联系人数据库
         
@@ -63,7 +63,7 @@ class WeChatDatabase:
             print(f'打开联系人数据库失败: {e}')
             return None
     
-    def open_message_db(self, documents_path: str, user_md5: str, db_index: int) -> sqlite3.Connection | None:
+    def open_message_db(self, documents_path: str, user_md5: str, db_index: int) -> Optional[sqlite3.Connection]:
         """
         打开消息数据库
         

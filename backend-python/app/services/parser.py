@@ -2,7 +2,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from app.models import UserInfo
 from app.utils.crypto import md5
@@ -125,7 +125,7 @@ class WeChatParser:
         print(f'找到 {len(user_md5s)} 个用户目录')
         return user_md5s
     
-    def get_user_avatar(self, documents_path: str, user_md5: str) -> str | None:
+    def get_user_avatar(self, documents_path: str, user_md5: str) -> Optional[str]:
         """
         获取用户头像路径
         
