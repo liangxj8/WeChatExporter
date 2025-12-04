@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
 from app.config import settings
-from app.routers import users, chats, analytics
+from app.routers import users, chats, analytics, ai
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -38,6 +38,7 @@ async def log_requests(request, call_next):
 app.include_router(users.router, prefix="/api/users", tags=["用户"])
 app.include_router(chats.router, prefix="/api/chats", tags=["聊天记录"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["数据分析"])
+app.include_router(ai.router, prefix="/api/ai", tags=["AI 功能"])
 
 
 # 健康检查
